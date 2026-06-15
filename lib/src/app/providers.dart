@@ -1,4 +1,7 @@
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/clock.dart';
 import '../data/backup/backup_service.dart';
@@ -27,11 +30,97 @@ import '../domain/complexity_tables.dart';
 import '../domain/learning_curve.dart';
 import '../domain/play_analytics.dart';
 import '../i18n/i18n.dart';
+import '../i18n/language_catalog.dart';
+import '../i18n/language_preference_repository.dart';
+import '../i18n/language_resolution.dart';
+import '../i18n/locale_option.dart';
 
-/// Overridden in [main] (and in tests) with the loaded locale bundle.
+final _currentI18nProvider = StateProvider<I18n?>((ref) => null);
+
+final currentLocaleCodeProvider = StateProvider<String?>((ref) => null);
+
+/// Current UI strings. Tests can still override this directly.
 final i18nProvider = Provider<I18n>((ref) {
-  throw UnimplementedError('i18nProvider must be overridden');
+  final i18n = ref.watch(_currentI18nProvider);
+  if (i18n == null) {
+    throw StateError('i18nProvider is not ready yet');
+  }
+  return i18n;
 });
+
+final languageCatalogProvider = Provider<LanguageCatalog>(
+  (ref) => LanguageCatalog(),
+);
+
+final localeOptionsProvider = FutureProvider<List<LocaleOption>>((ref) {
+  return ref.watch(languageCatalogProvider).load();
+});
+
+final sharedPreferencesProvider = FutureProvider<SharedPreferences>((ref) {
+  return SharedPreferences.getInstance();
+});
+
+final languagePreferenceRepositoryProvider =
+    FutureProvider<LanguagePreferenceRepository>((ref) async {
+      return LanguagePreferenceRepository(
+        preferences: await ref.watch(sharedPreferencesProvider.future),
+      );
+    });
+
+final languagePreferenceProvider =
+    AsyncNotifierProvider<LanguagePreferenceController, String>(
+      LanguagePreferenceController.new,
+    );
+
+final languageBootstrapProvider = FutureProvider<I18n>((ref) async {
+  final options = await ref.watch(localeOptionsProvider.future);
+  final preference = await ref.watch(languagePreferenceProvider.future);
+  final locale = resolveLocaleOption(
+    preference: preference,
+    options: options,
+    systemLocaleCodes: _systemLocaleCodes(),
+  );
+  final source = await rootBundle.loadString(locale.assetPath);
+  final i18n = I18n.fromJsonString(source);
+  ref.read(_currentI18nProvider.notifier).state = i18n;
+  ref.read(currentLocaleCodeProvider.notifier).state = locale.localeCode;
+  return i18n;
+});
+
+class LanguagePreferenceController extends AsyncNotifier<String> {
+  @override
+  Future<String> build() async {
+    final repository = await ref.watch(
+      languagePreferenceRepositoryProvider.future,
+    );
+    return await repository.read() ?? LanguagePreferenceRepository.systemValue;
+  }
+
+  Future<void> select(String localeCode) async {
+    state = AsyncData(localeCode);
+    final repository = await ref.read(
+      languagePreferenceRepositoryProvider.future,
+    );
+    await repository.save(localeCode);
+  }
+
+  Future<void> useSystem() async {
+    state = const AsyncData(LanguagePreferenceRepository.systemValue);
+    final repository = await ref.read(
+      languagePreferenceRepositoryProvider.future,
+    );
+    await repository.save(LanguagePreferenceRepository.systemValue);
+  }
+}
+
+List<String> _systemLocaleCodes() {
+  return [
+    for (final locale in WidgetsBinding.instance.platformDispatcher.locales)
+      locale.countryCode == null || locale.countryCode!.isEmpty
+          ? locale.languageCode
+          : '${locale.languageCode}-${locale.countryCode}',
+  ];
+}
 
 /// Single application database instance. Overridden with an in-memory database
 /// in widget tests.

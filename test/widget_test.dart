@@ -32,13 +32,15 @@ void main() {
     tester,
   ) async {
     final database = AppDatabase(NativeDatabase.memory());
+    final i18n = I18n.fromJsonString(_i18nSource);
     addTearDown(database.close);
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           appDatabaseProvider.overrideWithValue(database),
-          i18nProvider.overrideWithValue(I18n.fromJsonString(_i18nSource)),
+          i18nProvider.overrideWithValue(i18n),
+          languageBootstrapProvider.overrideWith((ref) async => i18n),
         ],
         child: const BgShelfScannerApp(),
       ),

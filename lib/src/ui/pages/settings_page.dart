@@ -7,6 +7,8 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../app/providers.dart';
 import '../../data/backup/backup_service.dart';
+import '../../i18n/language_preference_repository.dart';
+import '../../i18n/locale_option.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -138,6 +140,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
               children: [
+                Text(
+                  t.t('settings.language'),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                const _LanguageSelector(),
+                const Divider(height: 32),
                 Text(
                   t.t('settings.bggToken'),
                   style: Theme.of(context).textTheme.titleMedium,
@@ -286,5 +295,75 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ],
             ),
     );
+  }
+}
+
+class _LanguageSelector extends ConsumerWidget {
+  const _LanguageSelector();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = ref.watch(i18nProvider);
+    final options = ref.watch(localeOptionsProvider);
+    final preference = ref.watch(languagePreferenceProvider);
+
+    return options.when(
+      data: (localeOptions) {
+        final savedValue =
+            preference.valueOrNull ?? LanguagePreferenceRepository.systemValue;
+        final localeCodes = {
+          for (final option in localeOptions) option.localeCode,
+        };
+        final currentValue =
+            savedValue == LanguagePreferenceRepository.systemValue ||
+                localeCodes.contains(savedValue)
+            ? savedValue
+            : LanguagePreferenceRepository.systemValue;
+        return DropdownButtonFormField<String>(
+          initialValue: currentValue,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            isDense: true,
+          ),
+          items: [
+            DropdownMenuItem<String>(
+              value: LanguagePreferenceRepository.systemValue,
+              child: Text(t.t('settings.languageSystem')),
+            ),
+            for (final option in localeOptions)
+              DropdownMenuItem<String>(
+                value: option.localeCode,
+                child: Text(_languageLabel(option)),
+              ),
+          ],
+          onChanged: preference.isLoading
+              ? null
+              : (value) {
+                  if (value == null) {
+                    return;
+                  }
+                  final controller = ref.read(
+                    languagePreferenceProvider.notifier,
+                  );
+                  if (value == LanguagePreferenceRepository.systemValue) {
+                    controller.useSystem();
+                  } else {
+                    controller.select(value);
+                  }
+                },
+        );
+      },
+      loading: () => const LinearProgressIndicator(),
+      error: (error, _) => Text(
+        '$error',
+        style: TextStyle(color: Theme.of(context).colorScheme.error),
+      ),
+    );
+  }
+
+  String _languageLabel(LocaleOption option) {
+    return option.displayName == option.localeCode
+        ? option.displayName
+        : '${option.displayName} (${option.localeCode})';
   }
 }

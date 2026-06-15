@@ -1,4 +1,8 @@
 ﻿{
+    "_meta":  {
+                  "locale":  "ja",
+                  "name":  "日本語"
+              },
     "app":  {
                 "title":  "Board Game Shelf"
             },
@@ -262,6 +266,8 @@
                      },
     "settings":  {
                      "title":  "設定",
+                     "language":  "言語",
+                     "languageSystem":  "システムに従う",
                      "bggToken":  "BGGトークン",
                      "geminiApiKey":  "Gemini APIキー",
                      "translationOption":  "説明文の日本語翻訳",

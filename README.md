@@ -12,6 +12,32 @@ The app is designed to be useful **without any API keys**, with optional online 
 2. Run tests with `flutter test`.
 3. Start the app with `flutter run`.
 
+## Platform Support
+
+This app targets **Android only**.
+
+- **Android** — Supported. All features work, including camera-based barcode, box-cover, and shelf recognition.
+- **iOS** — Not supported and not planned. The `ios/` directory contains only the default Flutter template and is left in place for tooling compatibility; the app is not built, tested, or maintained for iOS.
+- **Desktop / Web** — Not a target. Camera and scanning features fall back to manual input on these platforms.
+
+## Localization
+
+UI strings are loaded from JSON bundles under `assets/i18n/` (`ja.json`, `en.json`) through a small key-based lookup (`I18n`).
+
+- The default language setting is **Follow system**. If the device language matches a bundled locale, that bundle is used.
+- If the system language is not bundled, the app falls back to English. If English is unavailable, it falls back to the first available locale bundle.
+- You can manually select a language from Settings. The choice is applied immediately and is kept after restarting the app.
+- The language preference is stored in `shared_preferences`; API keys and tokens remain isolated in secure storage.
+
+### Adding another language
+
+1. Copy an existing bundle to `assets/i18n/<locale>.json` and translate the values. Keep the same nested keys; missing keys fall back to showing the raw key string.
+2. Add top-level metadata such as `"_meta": {"locale": "fr", "name": "Français"}`. If `_meta` is omitted, the filename is used as both locale code and display name.
+3. No `pubspec.yaml` change is needed for additional locale JSON files because the whole `assets/i18n/` folder is bundled.
+4. Restart the app; the new file appears automatically in the Settings language selector.
+
+
+
 ## API Keys and Feature Availability
 
 This app never bundles API keys in the repository or the built binary. Any key you provide is stored only in the device's secure storage and is never written to the SQLite database, exported, or printed.
