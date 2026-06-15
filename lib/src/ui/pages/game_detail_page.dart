@@ -8,6 +8,7 @@ import '../../data/db/app_database.dart';
 import '../../data/repo/collection_repository.dart';
 import '../../data/repo/information_update_repository.dart';
 import '../../data/repo/play_session_repository.dart';
+import '../../domain/display_names.dart';
 import '../../data/translation/gemini_translation_service.dart';
 import '../../i18n/i18n.dart';
 import '../export_writer.dart';
@@ -262,6 +263,8 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
   @override
   Widget build(BuildContext context) {
     final t = ref.watch(i18nProvider);
+    final localeCode =
+        ref.watch(currentLocaleCodeProvider) ?? AppConstants.fallbackLocaleCode;
     final game = _game;
 
     return Scaffold(
@@ -286,13 +289,24 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
           ? const Center(child: CircularProgressIndicator())
           : game == null
           ? Center(child: Text(t.t('detail.notFound')))
-          : _buildBody(context, t, game),
+          : _buildBody(context, t, game, localeCode),
     );
   }
 
-  Widget _buildBody(BuildContext context, I18n t, Game game) {
+  Widget _buildBody(
+    BuildContext context,
+    I18n t,
+    Game game,
+    String localeCode,
+  ) {
     final isBgg = game.bggId != null && game.localId == null;
     final badge = resolveBestPlayersBadge(game.suggestedPlayerVotes);
+    final displayName = resolveDisplayName(
+      game,
+      localeCode,
+      fallback: t.t('game.nameUnknown'),
+    );
+    final subtitle = resolveSubtitle(game, localeCode);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
@@ -316,11 +330,10 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    resolveJapaneseDisplayName(game),
+                    displayName,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  if (resolveJapaneseSubtitle(game) != null)
-                    Text(resolveJapaneseSubtitle(game)!),
+                  if (subtitle != null) Text(subtitle),
                   if (game.localId != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
@@ -738,9 +751,19 @@ class _PlaySessionSection extends ConsumerWidget {
     final entries = await Future.wait(
       keys.map((key) async {
         final game = await database.findGame(key);
+        final t = ref.read(i18nProvider);
+        final localeCode =
+            ref.read(currentLocaleCodeProvider) ??
+            AppConstants.fallbackLocaleCode;
         return MapEntry(
           key,
-          game == null ? key : resolveJapaneseDisplayName(game),
+          game == null
+              ? key
+              : resolveDisplayName(
+                  game,
+                  localeCode,
+                  fallback: t.t('game.nameUnknown'),
+                ),
         );
       }),
     );
@@ -854,6 +877,8 @@ class _ExpansionInfoSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(i18nProvider);
+    final localeCode =
+        ref.watch(currentLocaleCodeProvider) ?? AppConstants.fallbackLocaleCode;
     final database = ref.watch(appDatabaseProvider);
     if (game.gameKind == AppConstants.gameKindExpansion) {
       final parentKey = game.parentGameKey;
@@ -880,7 +905,11 @@ class _ExpansionInfoSection extends ConsumerWidget {
                     parent == null
                         ? t.t('expansion.parentMissing', {'id': parentKey})
                         : t.t('expansion.parent', {
-                            'name': resolveJapaneseDisplayName(parent),
+                            'name': resolveDisplayName(
+                              parent,
+                              localeCode,
+                              fallback: t.t('game.nameUnknown'),
+                            ),
                           }),
                   ),
                   const SizedBox(height: 8),
@@ -934,7 +963,13 @@ class _ExpansionInfoSection extends ConsumerWidget {
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       dense: true,
-                      title: Text(resolveJapaneseDisplayName(expansion)),
+                      title: Text(
+                        resolveDisplayName(
+                          expansion,
+                          localeCode,
+                          fallback: t.t('game.nameUnknown'),
+                        ),
+                      ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => onOpenGame(expansion.gameKey),
                     ),

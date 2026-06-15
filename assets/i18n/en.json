@@ -6,6 +6,9 @@
     "app":  {
                 "title":  "Board Game Shelf"
             },
+    "game":  {
+                 "nameUnknown":  "Unknown title"
+             },
     "common":  {
                    "cancel":  "Cancel",
                    "delete":  "Delete",

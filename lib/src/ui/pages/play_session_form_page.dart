@@ -5,8 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/providers.dart';
 import '../../core/constants.dart';
 import '../../data/db/app_database.dart';
-import '../../data/repo/collection_repository.dart';
 import '../../data/repo/play_session_repository.dart';
+import '../../domain/display_names.dart';
 import '../../i18n/i18n.dart';
 
 class PlaySessionFormPage extends ConsumerStatefulWidget {
@@ -273,6 +273,8 @@ class _ExpansionCheckboxes extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(i18nProvider);
+    final localeCode =
+        ref.watch(currentLocaleCodeProvider) ?? AppConstants.fallbackLocaleCode;
     final database = ref.watch(appDatabaseProvider);
     return FutureBuilder<List<Game>>(
       future: database.findExpansions(gameKey),
@@ -295,7 +297,13 @@ class _ExpansionCheckboxes extends ConsumerWidget {
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
                   value: selectedKeys.contains(expansion.gameKey),
-                  title: Text(resolveJapaneseDisplayName(expansion)),
+                  title: Text(
+                    resolveDisplayName(
+                      expansion,
+                      localeCode,
+                      fallback: t.t('game.nameUnknown'),
+                    ),
+                  ),
                   onChanged: (value) =>
                       onChanged(expansion.gameKey, value ?? false),
                 ),

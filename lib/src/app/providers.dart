@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/constants.dart';
 import '../core/clock.dart';
 import '../data/backup/backup_service.dart';
 import '../data/bgg/bgg_api_client.dart';
@@ -301,9 +302,18 @@ final collectionListProvider =
     FutureProvider.autoDispose<List<CollectionListItem>>((ref) {
       final filter = ref.watch(collectionFilterProvider);
       final sortOrder = ref.watch(collectionSortOrderProvider);
+      final localeCode =
+          ref.watch(currentLocaleCodeProvider) ??
+          AppConstants.fallbackLocaleCode;
+      final t = ref.watch(i18nProvider);
       return ref
           .watch(collectionRepositoryProvider)
-          .list(filter: filter, sortOrder: sortOrder);
+          .list(
+            filter: filter,
+            sortOrder: sortOrder,
+            displayLocaleCode: localeCode,
+            fallbackDisplayName: t.t('game.nameUnknown'),
+          );
     });
 
 final collectionFacetsProvider = FutureProvider.autoDispose<CollectionFacets>((
@@ -319,9 +329,16 @@ final analyticsProvider = FutureProvider.autoDispose<AnalyticsSummary>((
 ) async {
   final includeNotOwned = ref.watch(analyticsIncludeNotOwnedProvider);
   final analyzer = await ref.watch(learningCurveAnalyzerProvider.future);
+  final localeCode =
+      ref.watch(currentLocaleCodeProvider) ?? AppConstants.fallbackLocaleCode;
+  final t = ref.watch(i18nProvider);
   final items = await ref
       .watch(collectionRepositoryProvider)
-      .list(filter: const CollectionFilter());
+      .list(
+        filter: const CollectionFilter(),
+        displayLocaleCode: localeCode,
+        fallbackDisplayName: t.t('game.nameUnknown'),
+      );
   return const CollectionAnalytics().summarize(
     items,
     includeNotOwned: includeNotOwned,
@@ -332,9 +349,16 @@ final analyticsProvider = FutureProvider.autoDispose<AnalyticsSummary>((
 final playAnalyticsProvider = FutureProvider.autoDispose<PlayAnalyticsSummary>((
   ref,
 ) async {
+  final localeCode =
+      ref.watch(currentLocaleCodeProvider) ?? AppConstants.fallbackLocaleCode;
+  final t = ref.watch(i18nProvider);
   final items = await ref
       .watch(collectionRepositoryProvider)
-      .list(filter: const CollectionFilter());
+      .list(
+        filter: const CollectionFilter(),
+        displayLocaleCode: localeCode,
+        fallbackDisplayName: t.t('game.nameUnknown'),
+      );
   final sessions = await ref.watch(playSessionListAllProvider.future);
   return const PlayAnalytics().summarize(items, sessions);
 });

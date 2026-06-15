@@ -27,6 +27,8 @@ UI strings are loaded from JSON bundles under `assets/i18n/` (`ja.json`, `en.jso
 - The default language setting is **Follow system**. If the device language matches a bundled locale, that bundle is used.
 - If the system language is not bundled, the app falls back to English. If English is unavailable, it falls back to the first available locale bundle.
 - You can manually select a language from Settings. The choice is applied immediately and is kept after restarting the app.
+- Game titles follow the active UI language: Japanese UI prefers Japanese names, English UI prefers English names. Games without a Japanese name fall back to the BGG primary/English name.
+- Search still checks all stored names regardless of the display language, so titles can be found by Japanese, English, or alternate names.
 - The language preference is stored in `shared_preferences`; API keys and tokens remain isolated in secure storage.
 
 ### Adding another language

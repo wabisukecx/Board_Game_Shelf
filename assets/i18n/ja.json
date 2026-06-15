@@ -6,6 +6,9 @@
     "app":  {
                 "title":  "Board Game Shelf"
             },
+    "game":  {
+                 "nameUnknown":  "名称不明"
+             },
     "common":  {
                    "cancel":  "キャンセル",
                    "delete":  "削除",

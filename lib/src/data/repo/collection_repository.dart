@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' show Value;
 
 import '../../core/constants.dart';
 import '../../domain/community_players.dart';
+import '../../domain/display_names.dart';
 import '../../domain/play_audience.dart';
 import '../db/app_database.dart';
 import 'play_session_repository.dart';
@@ -19,6 +20,8 @@ class CollectionRepository {
   Future<List<CollectionListItem>> list({
     CollectionFilter filter = const CollectionFilter(),
     CollectionSortOrder sortOrder = CollectionSortOrder.name,
+    String displayLocaleCode = 'ja',
+    String fallbackDisplayName = 'Unknown title',
   }) async {
     final games = await _database.select(_database.games).get();
     final parentKeysWithExpansions = {
@@ -40,8 +43,12 @@ class CollectionRepository {
       final item = CollectionListItem(
         game: game,
         collection: collection,
-        displayName: resolveJapaneseDisplayName(game),
-        subtitle: resolveJapaneseSubtitle(game),
+        displayName: resolveDisplayName(
+          game,
+          displayLocaleCode,
+          fallback: fallbackDisplayName,
+        ),
+        subtitle: resolveSubtitle(game, displayLocaleCode),
         bestPlayersBadge: resolveBestPlayersBadge(game.suggestedPlayerVotes),
         isLocal: game.localId != null,
         playCount: sessionRecords.length,
@@ -352,32 +359,6 @@ class DeleteConfirmationRequiredException implements Exception {
 
   @override
   String toString() => 'DeleteConfirmationRequiredException';
-}
-
-String resolveJapaneseDisplayName(Game game) {
-  final japanese = game.names.japanese ?? game.japaneseName;
-  if (japanese != null && japanese.trim().isNotEmpty) {
-    return japanese;
-  }
-  if (game.names.primary.trim().isNotEmpty) {
-    return game.names.primary;
-  }
-  if (game.name.trim().isNotEmpty) {
-    return game.name;
-  }
-  return '名称不明';
-}
-
-String? resolveJapaneseSubtitle(Game game) {
-  final english = game.names.primary;
-  final japanese = game.names.japanese ?? game.japaneseName;
-  if (japanese == null || japanese.trim().isEmpty) {
-    return null;
-  }
-  if (english.trim().isEmpty || english == japanese) {
-    return null;
-  }
-  return 'English: $english';
 }
 
 String? resolveBestPlayersBadge(SuggestedPlayerVotes votes) {

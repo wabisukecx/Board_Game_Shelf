@@ -96,9 +96,47 @@ void main() {
       final items = await repository.list();
 
       expect(items.single.displayName, 'カタン');
-      expect(items.single.subtitle, 'English: CATAN');
+      expect(items.single.subtitle, 'CATAN');
     },
   );
+
+  test(
+    'uses English display name and Japanese subtitle for English locale',
+    () async {
+      await _insertBgg(
+        database,
+        bggId: '401',
+        primary: 'CATAN',
+        japanese: 'カタン',
+      );
+
+      final items = await repository.list(displayLocaleCode: 'en');
+
+      expect(items.single.displayName, 'CATAN');
+      expect(items.single.subtitle, 'カタン');
+    },
+  );
+
+  test('searches all language names regardless of display locale', () async {
+    await _insertBgg(
+      database,
+      bggId: '402',
+      primary: 'Scout',
+      japanese: 'スカウト',
+    );
+
+    final japaneseQuery = await repository.list(
+      filter: const CollectionFilter(titleQuery: 'スカウト'),
+      displayLocaleCode: 'en',
+    );
+    final englishQuery = await repository.list(
+      filter: const CollectionFilter(titleQuery: 'Scout'),
+      displayLocaleCode: 'ja',
+    );
+
+    expect(japaneseQuery.single.displayName, 'Scout');
+    expect(englishQuery.single.displayName, 'スカウト');
+  });
 
   test('lists searches filters and edits collection fully offline', () async {
     await _insertBgg(
