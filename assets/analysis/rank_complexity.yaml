@@ -1,0 +1,50 @@
+boardgame:
+  complexity: 3.0
+  strategic_value: 3.5
+  interaction_value: 3.2
+  description: General board game ranking. Focused on games with average complexity, encompassing diverse mechanics and themes.
+strategygames:
+  complexity: 4.2
+  strategic_value: 4.8
+  interaction_value: 3.8
+  description: Strategy games ranking. Focuses on games that emphasize complex decision-making and long-term planning, requiring deep strategic thinking.
+wargames:
+  complexity: 4.5
+  strategic_value: 4.7
+  interaction_value: 4.0
+  description: Wargames ranking. Includes highly complex military simulations, characterized by detailed tactical and strategic elements with historical context.
+abstracts:
+  complexity: 3.8
+  strategic_value: 4.2
+  interaction_value: 2.7
+  description: Abstract games ranking. Centered on games that pursue pure strategy, emphasizing mechanics over theme.
+customizable:
+  complexity: 3.9
+  strategic_value: 4.3
+  interaction_value: 3.5
+  description: Customizable games ranking. Characterized by players' ability to freely customize game elements, such as deck building or character development.
+thematic:
+  complexity: 3.5
+  strategic_value: 3.7
+  interaction_value: 4.0
+  description: Thematic games ranking. Focuses on titles that emphasize story and worldbuilding, providing immersive gaming experiences aligned with their themes.
+familygames:
+  complexity: 2.3
+  strategic_value: 2.8
+  interaction_value: 3.5
+  description: Family games ranking. Centered on highly accessible games with somewhat simple rules that can be enjoyed by a wide age range.
+partygames:
+  complexity: 1.7
+  strategic_value: 1.5
+  interaction_value: 4.5
+  description: Party games ranking. Characterized by simple rules and high sociability, focusing on games that emphasize entertainment value.
+childrensgames:
+  complexity: 1.4
+  strategic_value: 1.3
+  interaction_value: 2.8
+  description: Children's games ranking. Centered on games designed with very simple rules and educational elements that can be enjoyed by younger audiences.
+cgs:
+  complexity: 3.7
+  strategic_value: 4.2
+  interaction_value: 3.5
+  description: Collectible games ranking. Focuses on trading card games and games with collection elements, where deck construction and understanding card synergies are important. A game genre characterized by management and strategic use of personal collections.

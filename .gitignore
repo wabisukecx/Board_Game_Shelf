@@ -1,0 +1,25 @@
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.tool-home/
+build/
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+
+# Android secrets & signing
+android/local.properties
+android/key.properties
+*.jks
+*.keystore
+
+# Environment
+.env
+.env.*
+
+# Misc
+.DS_Store

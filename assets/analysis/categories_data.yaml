@@ -1,0 +1,320 @@
+Abstract Strategy:
+  complexity: 3.6
+  strategic_value: 3.5
+  interaction_value: 2.0
+  description: Pure strategy based on abstract rules. Mechanics are emphasized over theme, requiring computational thinking.
+Action / Dexterity:
+  complexity: 2.0
+  strategic_value: 2.2
+  interaction_value: 3.7
+  description: Games that require physical ability or dexterity. Characterized by high interaction through physical skills and direct competition.
+Adventure:
+  complexity: 3.2
+  strategic_value: 3.0
+  interaction_value: 3.5
+  description: Balance of adventure elements and strategy. Requires managing both story progression and risk.
+Age of Reason:
+  complexity: 3.7
+  strategic_value: 3.8
+  interaction_value: 3.4
+  description: Strategic games set in the Age of Enlightenment. Includes elements of scientific thinking and social reform.
+American West:
+  complexity: 3.0
+  strategic_value: 3.2
+  interaction_value: 3.5
+  description: Games themed around the American frontier era. Characterized by resource acquisition and territorial expansion.
+Ancient:
+  complexity: 3.7
+  strategic_value: 3.7
+  interaction_value: 3.3
+  description: Complex political and economic systems of ancient civilizations. Strategy based on civilization building and historical context.
+Animals:
+  complexity: 1.8
+  strategic_value: 2.7
+  interaction_value: 3.0
+  description: Games themed around animals. Includes mechanics that imitate natural behavior patterns and ecosystems.
+Area Control / Area Influence:
+  complexity: 4.2
+  strategic_value: 4.5
+  interaction_value: 4.0
+  description: Mechanics centered on regional dominance. Securing territories and expanding influence are key to victory.
+Aviation / Flight:
+  complexity: 3.5
+  strategic_value: 3.4
+  interaction_value: 3.2
+  description: Games themed around aircraft and flight. Characterized by three-dimensional strategy and technology management.
+Bluffing:
+  complexity: 2.8
+  strategic_value: 3.2
+  interaction_value: 5.0
+  description: Psychological maneuvering through bluffing. Requires strategy to read opponents' intentions while concealing one's own actions.
+Card Game:
+  complexity: 2.3
+  strategic_value: 2.5
+  interaction_value: 3.0
+  description: Basic category of card games. Balancing hand management and probabilistic elements is important.
+Children's Game:
+  complexity: 1.2
+  strategic_value: 1.0
+  interaction_value: 2.5
+  description: Games for children with minimal strategy. Characterized by simple rules and short playing time.
+City Building:
+  complexity: 3.8
+  strategic_value: 4.0
+  interaction_value: 3.0
+  description: Spatial strategy through city construction. Efficient use of plots and optimal placement of facilities are key.
+Civilization:
+  complexity: 4.5
+  strategic_value: 5.0
+  interaction_value: 4.0
+  description: Long-term strategy through civilization building. Includes complex elements of resource management, technology development, and diplomatic strategy.
+Deduction:
+  complexity: 3.3
+  strategic_value: 3.6
+  interaction_value: 3.3
+  description: Games emphasizing deductive reasoning. Information gathering and logical analysis are the path to success.
+Dice:
+  complexity: 1.8
+  strategic_value: 2.0
+  interaction_value: 2.0
+  description: Games with dice as the main element. Tests balance between luck and risk management.
+Economic:
+  complexity: 4.2
+  strategic_value: 5.0
+  interaction_value: 4.0
+  description: Strategic depth through economic systems. Market manipulation, investment, and optimization of production chains are important.
+Educational:
+  complexity: 2.0
+  strategic_value: 2.0
+  interaction_value: 2.0
+  description: Educational elements are primary while strategy is secondary. Gameplay with embedded learning objectives.
+Electronic:
+  complexity: 2.8
+  strategic_value: 3.0
+  interaction_value: 2.5
+  description: Games using electronic devices. Characterized by the fusion of digital elements and analog play.
+Environmental:
+  complexity: 3.0
+  strategic_value: 3.2
+  interaction_value: 3.0
+  description: Games themed around environmental protection or ecosystems. Resource management and sustainability are important elements.
+Expansion for Base-game:
+  complexity: 3.5
+  strategic_value: 3.8
+  interaction_value: 3.3
+  description: Expansion version that adds new elements to the base game. Characterized by increasing the complexity of the base game and adding strategic options.
+Exploration:
+  complexity: 3.4
+  strategic_value: 3.5
+  interaction_value: 2.5
+  description: Strategy and discovery through exploration. Investigation of unknown areas and risk management are the path to success.
+Fantasy:
+  complexity: 3.1
+  strategic_value: 3.5
+  interaction_value: 3.2
+  description: Strategic elements based on fictional worldviews. Features unique mechanics such as magic and special abilities.
+Farming:
+  complexity: 3.5
+  strategic_value: 3.2
+  interaction_value: 3.5
+  description: Agricultural resource management and strategic decision-making. Requires long-term planning and efficient resource utilization.
+Fighting:
+  complexity: 3.2
+  strategic_value: 3.0
+  interaction_value: 5.0
+  description: High interaction through combat. Direct competition and tactical choices are central.
+Humor:
+  complexity: 1.9
+  strategic_value: 2.0
+  interaction_value: 4.0
+  description: Games centered around humor. Elements that provoke laughter are emphasized over strategy.
+Industry / Manufacturing:
+  complexity: 4.1
+  strategic_value: 4.0
+  interaction_value: 2.5
+  description: Strategic depth through industry and production. Building efficient production lines and resource conversion are important.
+Math:
+  complexity: 3.0
+  strategic_value: 3.2
+  interaction_value: 2.5
+  description: Games based on mathematical concepts. Calculation ability and numerical thinking determine victory.
+Medical:
+  complexity: 3.2
+  strategic_value: 3.3
+  interaction_value: 3.0
+  description: Games themed around medicine. Characterized by mechanics that simulate diagnosis and treatment processes.
+Medieval:
+  complexity: 3.5
+  strategic_value: 3.5
+  interaction_value: 3.2
+  description: Complex social structures and political maneuvering of the medieval period. Includes elements of hierarchy and territorial control.
+Memory:
+  complexity: 1.8
+  strategic_value: 2.0
+  interaction_value: 2.8
+  description: Games centered on memory. Memorizing and recalling information are the main challenges, testing cognitive abilities.
+Miniatures:
+  complexity: 3.8
+  strategic_value: 3.2
+  interaction_value: 3.5
+  description: Games using miniature figures. Characterized by spatial tactics and visual strategy.
+Movies / TV / Radio theme:
+  complexity: 2.5
+  strategic_value: 2.6
+  interaction_value: 3.5
+  description: Games based on media works. Includes strategic elements aligned with the original themes and stories.
+Music:
+  complexity: 2.3
+  strategic_value: 2.5
+  interaction_value: 3.8
+  description: Games themed around music. Rules are relatively simple, with musical sense and creativity emphasized over strategy.
+Mythology:
+  complexity: 3.4
+  strategic_value: 3.3
+  interaction_value: 3.2
+  description: Games themed around myths and legends. Characterized by traditional elements and supernatural abilities.
+Nautical:
+  complexity: 3.3
+  strategic_value: 3.4
+  interaction_value: 3.1
+  description: Games themed around oceans and navigation. Ship maneuvering and maritime strategy are central elements.
+Negotiation:
+  complexity: 3.7
+  strategic_value: 3.2
+  interaction_value: 5.0
+  description: High interaction centered on negotiation. Persuasiveness and strategic maneuvering determine victory.
+Novel-based:
+  complexity: 2.7
+  strategic_value: 3.0
+  interaction_value: 3.2
+  description: Games based on novels. Characterized by strategy that incorporates narrative elements from the original work.
+Number:
+  complexity: 2.6
+  strategic_value: 2.5
+  interaction_value: 2.7
+  description: Games centered on mathematical concepts. Calculation ability and logical thinking determine victory.
+Party Game:
+  complexity: 1.5
+  strategic_value: 2.0
+  interaction_value: 4.0
+  description: Emphasizes sociability with low strategy. Communication and entertainment value are central.
+Pirates:
+  complexity: 2.9
+  strategic_value: 3.1
+  interaction_value: 3.5
+  description: Games themed around pirates. Strategy with incorporated elements of plunder and adventure.
+Political:
+  complexity: 4.2
+  strategic_value: 5.0
+  interaction_value: 5.0
+  description: High strategy and interaction through political maneuvering. Alliance formation, negotiation, and influence expansion are central.
+Post-Napoleonic:
+  complexity: 3.9
+  strategic_value: 3.9
+  interaction_value: 3.7
+  description: Modern strategy and geopolitical changes. Complex strategic elements reflecting the military and political situation after the Industrial Revolution.
+Prehistoric:
+  complexity: 3.0
+  strategic_value: 3.2
+  interaction_value: 3.0
+  description: Games themed around prehistoric times. Characterized by strategies based on survival and evolution.
+Print & Play:
+  complexity: 2.2
+  strategic_value: 2.8
+  interaction_value: 3.0
+  description: Game format that can be printed and played at home. Often designed with accessibility in mind, covering diverse genres.
+Puzzle:
+  complexity: 2.7
+  strategic_value: 3.0
+  interaction_value: 2.0
+  description: Moderate strategy through puzzle elements. Tests logical thinking and problem-solving abilities.
+Racing:
+  complexity: 2.4
+  strategic_value: 2.5
+  interaction_value: 3.0
+  description: Limited strategy through racing. Speed and route selection are the main strategic elements.
+Real-time:
+  complexity: 3.0
+  strategic_value: 3.2
+  interaction_value: 4.2
+  description: Games requiring immediate decisions within time limits. Characterized by high interaction and tension through simultaneous actions.
+Religious:
+  complexity: 3.1
+  strategic_value: 3.0
+  interaction_value: 3.5
+  description: Strategic aspects of faith and social influence. Expansion of doctrine and acquisition of followers are central elements.
+Renaissance:
+  complexity: 3.6
+  strategic_value: 3.8
+  interaction_value: 3.6
+  description: Strategic development of cultural and technological innovation. Characterized by the integrated development of arts, science, and commerce.
+Science Fiction:
+  complexity: 3.4
+  strategic_value: 4.0
+  interaction_value: 3.0
+  description: Complex strategic elements through science fiction settings. Includes special rules such as advanced technology and space environments.
+Space Exploration:
+  complexity: 3.8
+  strategic_value: 3.5
+  interaction_value: 3.0
+  description: Strategic elements of space exploration. Survival and expansion in resource-limited environments are challenging.
+Spies / Secret Agents:
+  complexity: 3.4
+  strategic_value: 3.5
+  interaction_value: 3.7
+  description: Games themed around espionage. Information gathering and covert operation strategies are central.
+Sports:
+  complexity: 2.2
+  strategic_value: 2.8
+  interaction_value: 3.5
+  description: Games themed around sports. Abstracts actual competitive elements, with tactical choices being important.
+Strategy:
+  complexity: 4.2
+  strategic_value: 5.0
+  interaction_value: 4.0
+  description: Core category of strategy games. Strategic decision-making and long-term planning are keys to success.
+Territory Building:
+  complexity: 3.9
+  strategic_value: 4.0
+  interaction_value: 3.5
+  description: Strategy and indirect conflict through territorial expansion. Balance between regional control and resource securing is important.
+Trains:
+  complexity: 3.5
+  strategic_value: 3.7
+  interaction_value: 3.3
+  description: Games themed around railways. Characterized by route construction and building efficient transportation networks.
+Transportation:
+  complexity: 2.8
+  strategic_value: 3.3
+  interaction_value: 3.0
+  description: Strategic elements related to transport and logistics. Efficient network construction and route management are important.
+Travel:
+  complexity: 2.3
+  strategic_value: 2.8
+  interaction_value: 3.0
+  description: Games themed around travel and tourism. Route selection and destination visit strategies are central.
+Video Game Theme:
+  complexity: 2.8
+  strategic_value: 3.0
+  interaction_value: 3.2
+  description: Themes based on video games. Strategy that converts digital game elements to analog format.
+Wargame:
+  complexity: 4.5
+  strategic_value: 5.0
+  interaction_value: 4.0
+  description: Strategy and interaction through military conflict. Tactical placement, force management, and terrain utilization determine victory.
+Word Game:
+  complexity: 2.1
+  strategic_value: 2.0
+  interaction_value: 2.5
+  description: Games using words. Vocabulary and linguistic thinking are keys to success.
+Collectible Components:
+  complexity: 3.0
+  strategic_value: 3.5
+  interaction_value: 3.2
+  description: Games featuring collectible components. The gaming experience is deepened by collecting and customizing elements such as cards and miniatures. Collection strategy and timing judgment for use are important.
+Arabian:
+  complexity: 2.5
+  strategic_value: 3.0
+  interaction_value: 3.0
+  description: Games themed around Arabian culture and history. Features elements of trade, storytelling, and desert exploration with strategic elements inspired by the region's rich heritage.
