@@ -434,12 +434,6 @@ class AppDatabase extends _$AppDatabase {
         .get();
   }
 
-  Future<void> updateDescriptionJa(String gameKey, String? descriptionJa) {
-    return (update(games)..where((game) => game.gameKey.equals(gameKey))).write(
-      GamesCompanion(descriptionJa: Value(descriptionJa)),
-    );
-  }
-
   Future<void> updateParentGameKey(String gameKey, String? parentGameKey) {
     return (update(games)..where((game) => game.gameKey.equals(gameKey))).write(
       GamesCompanion(parentGameKey: Value(parentGameKey)),

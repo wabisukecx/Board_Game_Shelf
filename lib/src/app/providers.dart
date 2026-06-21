@@ -27,7 +27,6 @@ import '../data/repo/play_session_repository.dart';
 import '../data/repo/shelf_recognition_repository.dart';
 import '../data/settings/secret_store.dart';
 import '../data/settings/secure_settings_repository.dart';
-import '../data/translation/gemini_translation_service.dart';
 import '../data/vision/gemini_vision_service.dart';
 import '../domain/collection_analytics.dart';
 import '../domain/complexity_tables.dart';
@@ -258,19 +257,6 @@ final informationUpdateRepositoryProvider =
         api: ref.watch(bggApiProvider),
         parser: ref.watch(bggParserProvider),
         clock: ref.watch(clockProvider),
-      );
-    });
-
-final translationClientProvider = Provider<TranslationClient>(
-  (ref) => GeminiTranslationClient(),
-);
-
-final descriptionTranslationRepositoryProvider =
-    Provider<DescriptionTranslationRepository>((ref) {
-      return DescriptionTranslationRepository(
-        database: ref.watch(appDatabaseProvider),
-        settings: ref.watch(secureSettingsProvider),
-        client: ref.watch(translationClientProvider),
       );
     });
 

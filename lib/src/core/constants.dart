@@ -23,7 +23,6 @@ class AppConstants {
   static const Duration searchCacheTtl = Duration(hours: 24);
 
   static const double numericDiffTolerance = 1e-6;
-  static const double japaneseTranslationSkipRatio = 0.2;
   static const String fallbackLocaleCode = 'en';
 
   static const int recommendedPlayersMinimumVotes = 5;
