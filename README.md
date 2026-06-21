@@ -57,7 +57,6 @@ This app never bundles API keys in the repository or the built binary. Any key y
 | BGG title search & registration | ❌ | ✅ | ❌ | ✅ |
 | BGG collection batch import | ❌ | ✅ | ❌ | ✅ |
 | Expansion candidate discovery (from BGG links) | ❌ | ✅ | ❌ | ✅ |
-| Japanese translation of descriptions | ❌ | ❌ | ✅ | ✅ |
 | Photo box-cover recognition | ❌ | ❌² | ✅ | ✅ |
 | Shelf batch recognition | ❌ | ❌² | ✅ | ✅ |
 
@@ -71,13 +70,13 @@ BGG search, registration, collection import, and expansion discovery are unavail
 
 #### Without a Gemini API key
 
-Japanese translation of descriptions, photo box-cover recognition, and shelf batch recognition are unavailable. The app falls back to manual search and manual add. Original (untranslated) descriptions remain available.
+Photo box-cover recognition and shelf batch recognition are unavailable. The app falls back to manual search and manual add.
 
 ### How to obtain keys
 
 **BoardGameGeek token.** BGG search and registration use a Bearer token. Apply for an API token from the BoardGameGeek API page (<https://boardgamegeek.com/applications>). Approval can take more than a week. After approval, save the issued token in the app's Settings screen.
 
-**Gemini API key.** Save your own Gemini API key in Settings to enable translation and photo/shelf recognition. The same key is reused for both translation and Vision features. Descriptions whose Japanese-character ratio is already above 20% are skipped for translation. Translation failures are ignored and the original description remains available.
+**Gemini API key.** Save your own Gemini API key in Settings to enable photo box-cover recognition and shelf batch recognition.
 
 ## Collection List
 
