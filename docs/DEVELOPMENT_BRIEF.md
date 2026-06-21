@@ -1,264 +1,212 @@
-# Codex用開発文書: ボードゲーム所持管理アプリ（Board Game Shelf）
+# 開発文書: Board Game Shelf
 
 | 項目 | 内容 |
 |---|---|
-| 文書バージョン | 0.1 |
-| 作成日 | 2026-06-13 |
-| 入力文書 | ①要件定義書 v0.1 ②既存資産流用仕様書（データ・表示制御編）v0.1 ③BGGアクセス制御仕様書 v0.1（②から参照） |
-| 対象スコープ | **Phase 0 (MVP)**: F-03 検索・手動登録 / F-04 コレクション管理 / F-05 YAMLエクスポート |
-| 実装エージェント | Codex |
+| 文書バージョン | 1.0（統合版） |
+| 最終更新 | 2026-06-21 |
+| 位置づけ | `docs/archive/DEVELOPMENT_BRIEF_*.md`（Phase 0〜8、および運用改善ブリーフ群）を、開発履歴のサマリーとして1つに統合したもの。各フェーズの冒頭プロンプト・タスク別の詳細な実装指示・受け入れ基準・コードスニペットは `docs/archive/` の元文書を参照 |
+| 対応する要件 | `docs/REQUIREMENTS.md`（統合版要件定義書） |
+| 実装エージェント | Codex（仕様策定・レビューはClaude） |
 
 ---
 
-## 0. 設計根拠（rationale）
+## 1. 開発の進め方（規約）
 
-- **Phase 0に限定する理由**: 要件定義書§9のとおり、最大の技術リスク（バーコード解決・Vision LLM認識）を後段に分離し、確実に価値が出るコア（ローカルDB＋BGG検索登録＋analyzer互換エクスポート）を先に完成させる。Phase 1（バーコード）以降は本文書の改訂版で追加タスクとして発行する。
-- **タスクは依存順に直列実行**: DBスキーマ→APIクライアント→パーサ→UI→エクスポートの順で、前タスクの成果物を後タスクが入力とする。各タスクに受け入れ基準（acceptance criteria）を付し、**満たさない限り次タスクへ進まない**。
-- **移植仕様の定数は§3の定数表が唯一の正**: 流用元（boardgame_analyzer / TabletopTracker）で実運用済みの値であり、Codexの判断で変更しない。
+このプロジェクトはAIDD（AI-Driven Development）で進めてきた。Claudeが要件定義・設計・タスク分割を行い、`docs/`にブリーフとして書き起こし、Codexがそれをタスク番号順に実装する。各フェーズ・各ブリーフで一貫している進め方:
 
----
-
-## 1. Codexへの引き渡し手順（人間向け）
-
-1. リポジトリを新規作成し、本文書を `docs/DEVELOPMENT_BRIEF.md` として配置する。
-2. §2「冒頭プロンプト」をCodexの最初の指示として貼り付ける。
-3. Codexは§5のタスクを `T-01` から順に実行し、各タスク完了時に受け入れ基準の充足を報告する。
-4. 設計と矛盾が発覚した場合、Codexは実装を止めて矛盾点を報告する（勝手に仕様を変えない）。本文書を改訂してから再開する。
-
-## 2. 冒頭プロンプト（Codexへ最初に渡す指示）
-
-```
-あなたはFlutterアプリ「Board Game Shelf」のPhase 0 (MVP) を実装します。
-docs/DEVELOPMENT_BRIEF.md が唯一の仕様書です。以下を厳守してください。
-
-1. §5のタスクを T-01 から番号順に実装する。並行着手しない。
-2. 各タスクの受け入れ基準をテストコードで担保し、完了報告に
-   「実装ファイル一覧 / テスト結果 / 基準との対応」を含める。
-3. §3 定数表の値・§6 YAML互換仕様・§7 移植ロジックは変更禁止。
-   曖昧さや矛盾を見つけたら実装せずに質問する。
-4. APIキー・トークン・個人データをコード/テスト/フィクスチャに
-   一切含めない（§8 禁止事項）。
-5. UI文言はすべて assets/i18n/ja.json のキー経由で参照する。
-   ハードコード文字列を作らない。
-まず T-01 から開始してください。
-```
+1. 各タスクは独立コミット可能な粒度に分割し、依存順に直列実行する（並行着手しない）。
+2. 各タスク完了時に「実装ファイル一覧／テスト結果／受け入れ基準との対応」を報告する。
+3. 設計と矛盾が見つかった場合は実装を止めて報告する（独断で仕様を変えない）。矛盾が解消してから再開する。
+4. UI文言は必ず `assets/i18n/{ja,en}.json` のキー経由で参照し、ハードコードしない。
+5. 時刻・乱数・ネットワークに直接依存するテストは書かず、Clock/Random/Transport等の抽象を注入してユニットテストする。
+6. 既存の定数・スキーマ・YAML互換仕様・移植ロジックは、明示的にそのフェーズの対象でない限り変更しない。
 
 ---
 
-## 3. 定数表（変更禁止・流用元実績値）
-
-| ID | 定数 | 値 | 用途 | 出典 |
-|---|---|---|---|---|
-| C-01 | BGG詳細レート上限 | 15 req/分 | `thing` エンドポイント | 別紙1 §3.1 |
-| C-02 | BGG検索レート上限 | 20 req/分 | `search` エンドポイント | 別紙1 §3.1 |
-| C-03 | リクエスト前ジッタ | uniform(0.2, 1.0) 秒 | 全BGGリクエスト | 別紙1 §3.2 |
-| C-04 | 最大リトライ回数 | 3 | 429/5xx/接続エラー | 別紙1 §4 |
-| C-05 | 429待機 | Retry-After（既定30秒）+ uniform(1,5) | レート超過時 | 別紙1 §4 |
-| C-06 | 5xx/接続バックオフ | 2^retries + uniform(0,1) 秒 | サーバエラー時 | 別紙1 §4 |
-| C-07 | 202再取得 | 3秒待機×最大3回 | キュー受付応答 | 別紙1 §4 |
-| C-08 | 詳細キャッシュTTL | 48時間 | api_cache | 別紙1 §5.1 |
-| C-09 | 検索キャッシュTTL | 24時間 | api_cache | 別紙1 §5.1 |
-| C-10 | 数値差分許容誤差 | 1e-6 | update_history差分判定 | 別紙2 §2.1 |
-| C-11 | 翻訳スキップ閾値 | 日本語系文字比率 > 20%（U+3040–U+9FFF, U+F900–U+FAFF） | Gemini翻訳（任意機能） | 別紙2 §5.1 |
-| C-12 | 推奨人数表示の最小票数 | 総票数 ≥ 5 | 表示用集計 | 別紙2 §4.2 |
-| C-13 | Best採用閾値 | Best票 > 総票数の50% | 同上 | 別紙2 §4.2 |
-| C-14 | Recommended採用閾値 | Best+Recommended > 総票数の70% | 同上 | 別紙2 §4.2 |
-| C-15 | BGG IDゼロ埋め | 6桁 | ファイル名 | 要件 F-05 |
-| C-16 | ローカルID書式 | `L` + 5桁連番（L00001〜） | 同人ゲーム | 要件 F-03 |
-| C-17 | ファイル名置換対象 | 半角空白 `/` `\` `:` `;` → `_`、全角空白→半角空白 | エクスポート | 別紙1 §7.5 |
-| C-18 | バックアップ命名 | 自動: `YYMMDD` / 手動: `backup_YYYYMMDD_HHMMSS` | DB保全 | 別紙2 §7.1 |
-
----
-
-## 4. 技術スタック・リポジトリ構成
+## 2. 技術スタック・リポジトリ構成
 
 | 項目 | 指定 |
 |---|---|
-| フレームワーク | Flutter（stable最新）。Android優先、iOSビルドを壊さない |
-| 状態管理 | Riverpod（指定。理由: テスト容易性とDI） |
+| フレームワーク | Flutter（stable最新）。Android優先、iOSビルドは壊さない |
+| 状態管理 | Riverpod |
 | ローカルDB | drift（SQLite） |
 | HTTP | dio（インターセプタでレート制限・リトライを実装） |
 | 機密保存 | flutter_secure_storage |
+| 非機密設定 | shared_preferences（言語設定等） |
 | XML解析 | package:xml |
-| YAML出力 | 自前シリアライザ可（§6の出力順序保証が必須のためMap順序を制御すること） |
-| テスト | flutter_test + mocktail。時刻・乱数は注入可能にする（Clock/Random抽象） |
+| CSV解析 | package:csv（GameUPCオフラインキャッシュ取り込み用） |
+| YAML | package:yaml（分析重み付けデータ読み込み・エクスポート） |
+| テスト | flutter_test + mocktail。Clock/Random/Transportは注入可能にする |
 
 ```
 lib/
-  core/        … 定数(constants.dart=§3定数表), Result型, Clock/Random抽象
+  core/        … 定数(constants.dart)、Result型、Clock/Random抽象、barcode.dart（JAN正規化）
   data/
-    db/        … driftスキーマ・DAO (T-02)
-    bgg/       … BggApiClient, RateLimiter, RetryPolicy, XmlParser (T-03, T-04)
-    repo/      … GameRepository, CollectionRepository (T-05〜)
-  domain/      … エンティティ(GameNames, LearningExportModel等)
+    db/        … drift スキーマ・DAO（app_database.dart）
+    bgg/       … BggApiClient, RateLimiter, RetryPolicy, BggXmlParser, BggTransport
+    gameupc/   … GameUpcClient（ライブAPI）, GameUpcCsvTransport（CSVダウンロード）
+    vision/    … GeminiVisionClient（箱写真・棚写真の画像認識）
+    repo/      … 各種Repository（collection / barcode_map / bgg_registration /
+                  local_game / play_session / game_upc_cache / box_recognition /
+                  shelf_recognition / bgg_collection / information_update）
+  domain/      … GameNames, CollectionAnalytics, LearningCurveAnalyzer,
+                  ComplexityTables, PlayAnalytics, display_names.dart
   ui/
-    pages/     … S-01〜S-06に対応する画面
-    widgets/
-  i18n/        … 文言ローダ（ドット区切りキー）
-assets/i18n/ja.json, en.json
-docs/DEVELOPMENT_BRIEF.md（本文書）
-test/ … タスク単位のテスト（test/t03_rate_limiter_test.dart 等）
+    pages/     … 各画面（collection_list / game_detail / scan / search_registration /
+                  local_game_form / photo_recognition / shelf_recognition /
+                  bgg_import / dashboard / play_analytics / play_session_form / settings）
+    widgets/   … 画面共有ウィジェット（candidate dialog, analytics sections 等）
+  i18n/        … 文言ローダ（ドット区切りキー、未定義キーはキー文字列を返すフォールバック）
+assets/
+  i18n/        … ja.json, en.json（_meta付き。フォルダ指定でAssetManifestから動的列挙）
+  analysis/    … mechanics_data.yaml, categories_data.yaml, rank_complexity.yaml
+  gameupc/     … gameupc_seed.csv（GameUPCオフラインキャッシュの同梱シード）
+docs/          … REQUIREMENTS.md, DEVELOPMENT_BRIEF.md（本書）, archive/（フェーズ別原本）
+test/          … タスク単位のテスト（t01〜t34、命名は実装順の連番）
 ```
 
 ---
 
-## 5. 実装タスク（execution order・最大10件）
+## 3. 定数表の要点
 
-### T-01 プロジェクト雛形とi18n基盤
-- 内容: Flutterプロジェクト生成、依存導入、`core/constants.dart` に§3定数表を定義、i18nローダ実装（ドット区切りキー、`{var}`置換、未定義キーはキー文字列を返すフォールバック＝別紙2 §8）。
-- 受け入れ基準:
-  - [ ] `t("search.title")` 形式の参照が動作し、未定義キーで例外でなくキー文字列が返る
-  - [ ] 定数が constants.dart に一元定義され、マジックナンバーが他ファイルに存在しない
+全定数は `lib/src/core/constants.dart` の `AppConstants` に一元管理されている。フェーズごとに採番した代表的なものを抜粋する（フルの対応表は `docs/archive/` 各ブリーフの §3 を参照）。
 
-### T-02 DBスキーマ（drift）
-- 内容: 要件定義書§6の5テーブルを実装。`games.names` は別紙2 §3.2の4要素構造（primary/japanese/english/alternates、alternatesは順序保持・重複除去）をJSONカラムで保持。`game_key` はBGG ID（数値文字列）またはローカルID（C-16）。
-- 受け入れ基準:
-  - [ ] games / collection / barcode_map / api_cache / settings がマイグレーション付きで作成される
-  - [ ] BGG由来データ更新時にcollection行が影響を受けないことをDAOテストで確認（別紙2 §2.2-3）
-  - [ ] ローカルID採番が L00001 から欠番なく増加し、BGG IDと衝突しない
-
-### T-03 BGG APIクライアント（認証・レート制限・リトライ・キャッシュ）
-- 内容: 別紙1 §2〜§6を実装。Bearerヘッダ（secure_storageから取得、未設定時はヘッダなし+警告ログ）、ドメインは `boardgamegeek.com`（www禁止）。レート制限はthing/searchで履歴分離のスライディングウィンドウ（C-01〜C-03）、リクエストはクライアント内で直列化。リトライはC-04〜C-07。キャッシュはapi_cacheテーブル（C-08, C-09）で、判定はレート制限の**外側**（ヒット時はレート消費なし）。
-- 受け入れ基準（別紙1 §10より）:
-  - [ ] FakeClockで16件連続詳細取得時、61秒未満に16リクエストが送信されない
-  - [ ] 同一IDの2回目取得がネットワーク層モックを呼ばない／TTL経過後は再取得する
-  - [ ] 429（Retry-Afterあり/なし）・503・タイムアウト・202の各シナリオで規定の待機と回数になる
-  - [ ] 401は即時失敗し、リトライされない
-
-### T-04 XMLパーサ（日本語名2段判定・投票集計）
-- 内容: 別紙1 §7の全項目を実装。日本語名はlanguage属性(ja/jp/jpn)→ひらがな/カタカナ走査の2段判定（漢字のみでは確定しない）。polls集計（保存層: 人数ごと最多得票分類、`+`除去ソート、カンマ区切り）。ranksは"Not Ranked"除外。検索クエリの空白→`+`置換。
-- 受け入れ基準:
-  - [ ] テストフィクスチャ3種（①language属性あり ②属性なし+カタカナ別名 ③漢字のみ別名）で、③のみjapanese_nameがnullになる
-  - [ ] community_best_players が "2, 4+" 形式の数値順ソート文字列になる
-  - [ ] weight/average/ranksが欠落したXMLでも例外なくパースできる
-
-### T-05 検索・登録フロー（F-03前半: BGG登録）
-- 内容: S-01（一覧+FAB）→検索（exactチェックボックス付き）→S-03（候補確認: 名称・年・サムネイル）→詳細取得→登録。登録確定時に別紙2 §6の検証（必須項目、重複時は新規作成せずS-04へ誘導）。
-- 受け入れ基準:
-  - [ ] 既存game_keyの再登録操作で新規行が作られず、既存詳細画面に遷移する
-  - [ ] タイトル空・プレースホルダ名のレコードが登録できない
-  - [ ] トークン未設定時、検索実行前に設定画面（S-05）への誘導が表示される
-
-### T-06 ローカル独自レコード登録（F-03後半: 同人対応）
-- 内容: タイトルのみ必須の手入力フォーム。人数・時間・メカニクス（自由テキストのリスト）・カテゴリは任意。C-16のID採番。
-- 受け入れ基準:
-  - [ ] タイトルのみで登録が完了し、一覧にローカルバッジ付きで表示される
-  - [ ] ローカルレコードがBGG再取得（T-08）の対象外であること
-
-### T-07 コレクション管理（F-04）
-- 内容: S-01一覧（リスト/グリッド、タイトル部分一致検索、人数・時間・ローカルのみフィルタ）、S-04詳細（BGG由来は読み取り専用、所持メタデータ owned/acquired_date/condition/storage_location/memo/purchase_price 編集）。表示名解決は別紙2 §3.1（日本語UI: japanese→primary、副表示 `English: {name}`）。「最適人数」バッジは別紙2 §4.2の閾値集計（C-12〜C-14、`min–max人` 形式）。削除は所持メタデータ入力済みなら確認ダイアログ必須。完全オフラインで動作。
-- 受け入れ基準:
-  - [ ] 総票数4票の人数が最適人数バッジに採用されない（保存データには残る）
-  - [ ] japanese_name欠落ゲームが英語名表示・副表示なしになる
-  - [ ] 機内モード相当（ネットワーク層を例外化）で一覧・検索・編集が動作する
-  - [ ] 1,000件のシードデータで一覧スクロールがジャンクしない（プロファイルモードで確認）
-
-### T-08 情報更新（差分検出・update_history）
-- 内容: S-04の「情報更新」ボタン。BGG再取得→別紙2 §2の差分検出（C-10、型ゆらぎ吸収、mechanics/categories集合差分の追加/削除列挙、数値は小数2桁 `old → new` 表示）→ユーザー確認→上書き＋update_history追記（date ISO、変化項目のみ、rank typeごと）。collectionテーブルは不変。
-- 受け入れ基準:
-  - [ ] weightの変化が1e-6未満のとき履歴が追記されない
-  - [ ] rankは変化したtypeのみ `{type, rank}` で記録される
-  - [ ] 差分ゼロのとき「変更なし」を表示し、保存処理が走らない
-
-### T-09 YAMLエクスポート（F-05・互換性が最重要）
-- 内容: §6の互換仕様で個別/一括出力。正規化（id除去、全角空白変換、C-15/C-17のファイル名規約、ローカルは `L{5桁}_{名称}.yaml`）。`collection:` ブロック付加。update_history含む。一括時はMD5内容ハッシュで無変更レコードをスキップ（全件出力オプションあり、別紙2 §7.2）。出力先: 端末保存+OS共有シート。
-- 受け入れ基準（最重要）:
-  - [ ] 出力ファイル名が正規表現 `^(\d+)_(.*?)\.yaml$`（BGG由来）にマッチし、ローカルはマッチしない
-  - [ ] §6のキー順序（特にdescription直後のdescription_ja）がゴールデンファイルテストで一致する
-  - [ ] PyYAML `safe_load` 相当で往復可能な正規YAMLである（リストはブロックスタイル、UTF-8、アンカー不使用）
-  - [ ] 2回目の一括エクスポートで無変更レコードが書き出されない／全件オプションで全件出る
-
-### T-10 設定画面・翻訳オプション・バックアップ
-- 内容: S-05（BGGトークン・Gemini APIキーをsecure_storage保存、トークン取得手順ガイド表示、「承認に1週間以上」の注記）。Gemini翻訳（任意機能、別紙2 §5: C-11スキップ判定、翻訳文のみ出力プロンプト、失敗時は原文表示継続、description_jaはdescription直後に挿入、game_key単位でDB保存）。DBバックアップ（C-18命名）。READMEにトークン取得手順・MITライセンス・「キー非同梱」方針を記載。
-- 受け入れ基準:
-  - [ ] APIキー・トークンがDBファイル・エクスポートYAML・ログに出力されない（grepテスト）
-  - [ ] 日本語比率20%超の説明文で翻訳APIが呼ばれない
-  - [ ] Geminiキー未設定/呼び出し失敗時にエラー画面にならず原文が表示される
-
----
-
-## 6. YAML互換仕様（ゴールデンフォーマット）
-
-エクスポートはboardgame_analyzerの `game_data/*.yaml` と同一キー構成とする。**キー出現順序を保証すること**。
-
-```yaml
-# ファイル名例: 000013_CATAN.yaml / L00001_俺の屍を越えてゆけ風同人ゲーム.yaml
-type: boardgame
-name: CATAN                      # 英語名（primary）
-alternate_names:                 # 任意
-  - カタンの開拓者たち
-japanese_name: カタンの開拓者たち    # 任意（別紙1 §7.1の2段判定で確定したもののみ）
-year_published: '1995'           # BGG由来値は文字列のまま保持（analyzer互換）
-thumbnail_url: https://...
-publisher_min_players: '3'
-publisher_max_players: '4'
-playing_time: '120'
-publisher_min_age: '10'
-community_best_players: '4'
-community_recommended_players: '3, 4'
-community_min_age: '10'
-description: |-
-  ...original English text...
-description_ja: |-               # 任意。必ずdescriptionの直後
-  ...日本語訳...
-mechanics:                       # idキーは含めない（除去済み）
-  - name: Dice Rolling
-categories:
-  - name: Negotiation
-designers:
-  - name: Klaus Teuber
-publishers:
-  - name: KOSMOS
-average_rating: '7.1'
-weight: '2.3'
-ranks:
-  - type: boardgame
-    rank: '429'
-update_history:                  # 任意（T-08で生成された場合）
-  - date: '2026-06-13'
-    weight: '2.31'
-collection:                      # 本アプリ独自ブロック（analyzerは無視できる）
-  owned: true
-  acquired_date: '2026-06-01'
-  condition: good
-  storage_location: 棚A-2
-  memo: ''
-```
-
-注意: ローカル独自レコード（L-ID）はBGG由来キーのうち取得不能なものを**省略**する（空文字で埋めない）。
-
----
-
-## 7. 移植ロジック早見（実装時に迷ったらここ）
-
-| ロジック | 規則 |
+| ID範囲 | 概要 |
 |---|---|
-| 日本語名確定 | language属性(ja/jp/jpn) → なければ別名にひらがな(U+3040–U+309F)/カタカナ(U+30A0–U+30FF)含有。**漢字のみは不採用** |
-| 表示名（日本語UI） | japanese → primary → 「名称不明」。副表示は `English: {name}` |
-| ファイル名のベース名 | 言語設定に依存せず primary(英語) → japanese の順で採用 |
-| 数値差分 | float化して `abs(old−new) > 1e-6`。変換不能なら不等価比較。None同士=差分なし |
-| 推奨人数（保存） | 人数ごと最多得票分類、`+`除去数値ソート、カンマ区切り |
-| 推奨人数（表示） | 総票数≥5のみ対象、Best>50% → Best採用、それ以外でBest+Rec>70% → Rec採用、`min–max人` |
-| 翻訳スキップ | 日本語系文字比率 > 0.2 で呼び出さない。原文は不変 |
-| キャッシュとレートの順序 | キャッシュ判定が外側（ヒットはレート非消費） |
+| C-01〜C-09 | BGG APIのレート制限（thing 15/分・search 20/分）・リトライ・202再取得・キャッシュTTL |
+| C-10〜C-18 | 数値差分許容誤差、推奨人数の採用閾値、ID書式（BGG 6桁ゼロ埋め／ローカル`L`+5桁）、バックアップ命名 |
+| C-19〜C-22 | バーコード受理形式（EAN-13/UPC-A正規化）、連続検出抑止時間、学習保存のsource値 |
+| C-23〜C-30 | Vision（箱写真・棚写真）のモデル設定、送信前リサイズ、確信度下限、出力スキーマ、棚の最大検出数 |
+| C-31〜C-35 | コレクション分析のTop-N件数、人数カバレッジ範囲、重さ/時間のバケット境界 |
+| C-36〜C-38 | BGGコレクション取得パラメータ、既登録スキップ、連続失敗中断閾値 |
+| C-39〜C-42 | 分析重み付けアセットパス、未知名称の既定値、指標レンジ、入力既定値 |
+| C-43〜C-45 | ゲーム種別（base/expansion）、BGG拡張リンク種別、DBスキーマバージョン(6) |
+| C-46〜C-51 | プレイ記録の評価系スケール（評価1-10・また遊びたい度1-5・重さの体感1.0-5.0刻み0.5）、DBスキーマバージョン(7)、お気に入り評価しきい値(7) |
+
+> 2026-06の運用改善（§5後半）で、GameUPCオフラインキャッシュ関連の定数・GitHub配布向けの設定が追加されている。最新の正本は常に `constants.dart`。
 
 ---
 
-## 8. 禁止事項・制約
+## 4. データベーススキーマの変遷
 
-1. **シークレットの混入禁止**: APIキー・トークン・実在ユーザーデータをソース・テスト・CI設定・コミット履歴に含めない。テストはダミー値＋モックで行う。
-2. **定数の独断変更禁止**（§3）。チューニング提案がある場合は実装せず報告する。
-3. **YAML互換の独自拡張禁止**: `collection:` と `L`接頭辞ID以外の独自仕様をBGG由来キー側に追加しない。
-4. **Phase 1以降の先行実装禁止**: camera/mobile_scanner/Vision LLM関連の依存・コードを本フェーズで追加しない（barcode_mapテーブルの器のみT-02で作る）。
-5. UI文言のハードコード禁止（i18nキー経由）。
-6. ネットワーク・時刻・乱数に直接依存するテストを書かない（必ず抽象を注入）。
+| schemaVersion | 変更内容 |
+|---|---|
+| 1〜4 | Phase 0〜4。`games` / `collection` / `barcode_map` / `api_cache` / `settings` の基本構成 |
+| 6 | Phase 5。`games` に `gameKind`（'base'/'expansion'）・`parentGameKey` を追加（拡張管理） |
+| 7 | Phase 6-A。`play_sessions` / `play_session_expansions` を新規追加（プレイ記録） |
+| 8 | 運用改善（GameUPCオフラインキャッシュ化）。`gameupc_cache` テーブルを新規追加 |
+
+(schemaVersion 5は社内検証用に欠番。詳細はマイグレーションテスト `t24`/`t27`/`t34` を参照)
 
 ---
 
-## 9. 完了の定義（Phase 0 Done）
+## 5. 開発履歴
 
-- T-01〜T-10の全受け入れ基準がテストで担保され、`flutter test` が全件成功する
-- `flutter analyze` 警告ゼロ
-- 実機（Android）で「BGG検索登録→所持メタ入力→一括エクスポート→共有」のE2E動線が通る
-- エクスポートYAMLがboardgame_analyzerの取り込み検証（要件定義書 別紙1 §10-5）に合格する
-- README（トークン取得手順・セットアップ・ライセンス）が整備されている
+### Phase 0（MVP）— `docs/archive/DEVELOPMENT_BRIEF_Phase0.md`（T-01〜T-10）
+ローカルDB＋BGG検索登録＋boardgame_analyzer互換YAMLエクスポートというコア価値を最初に完成させた。i18n基盤、driftスキーマ（5テーブル）、BGG APIクライアント（レート制限・リトライ・202・キャッシュ）、XMLパーサ（日本語名2段判定・投票集計）、検索登録フロー、ローカル独自レコード登録、コレクション管理（一覧・詳細・最適人数バッジ）、情報更新（差分検出）、YAMLエクスポート、設定画面（APIキー・Gemini翻訳オプション〔後に削除〕・バックアップ）を実装。最大の技術リスク（バーコード解決・画像認識）はこの時点では意図的に対象外とした。
+
+### Phase 1-A（バーコードスキャン登録）— T-11〜T-15
+`mobile_scanner`によるJAN/EAN-13カメラ読み取り。BGGにはバーコード検索が無いため、`barcode_map`テーブルへの学習保存を軸に「既知JANは即ヒット、未知JANは検索/手動登録経由で登録時に学習」という非対称フローを構築。カメラ非対応・権限拒否時は手入力フォームにフォールバック。
+
+### Phase 1-B（箱表紙の画像AI認識）— T-16〜T-20
+`image_picker`で取得した箱表紙1枚をGemini マルチモーダルへ明示送信し、推定タイトルを既存のタイトル検索に合流させる`photo_recognition_page.dart`を追加。VisionはBGG IDを直接確定せず、必ず候補確認を挟む。
+
+### Phase 1-C（棚全体の複数ゲーム同時検出）— T-21〜T-25
+1-Bのvisionクライアントを多検出（JSON配列）に拡張し、棚画像から複数候補を一括レビュー→順次登録できる`shelf_recognition_page.dart`を追加。物体検出・クロップは実装せず、確認UIで誤り・取りこぼしを吸収する設計。
+
+### Phase 2（コレクション分析ダッシュボード）— T-26〜T-30
+完全オフライン・読み取り専用の集計ロジック`CollectionAnalytics`を純Dartで実装し、`dashboard_page.dart`で概要・分布・人数カバレッジ・Top-Nランキング・保管/入手時期を可視化。新規依存（チャートライブラリ等）は追加せず、組み込みウィジェットの横バーで描画。
+
+### Phase 3（BGGコレクション一括取り込み）— T-31〜T-35
+BGGの`collection`エンドポイント（202レスポンス対応）から所持ゲーム一覧を取得し、既存の`registerBggId`に丸投げする一括登録フロー`bgg_import_page.dart`を追加。既登録はスキップ（冪等）、進捗・キャンセル・連続失敗中断に対応。
+
+### Phase 4（多次元分析指標の移植）— T-36〜T-40
+姉妹プロジェクトboardgame_analyzerの戦略的深度・学習曲線等の算出ロジックを純Dartに忠実移植。重み付けデータ3 YAMLをアセット同梱し、`LearningCurveAnalyzer`が10指標＋分類を算出。詳細画面とダッシュボードに反映。
+
+### Phase 5（拡張管理）— T-41〜T-45
+`games`テーブルに`gameKind`/`parentGameKey`を追加（schemaVersion 6）。BGGの`boardgameexpansion`リンクから親子関係を判定し、新規登録直後に拡張候補を提示。コレクション一覧で拡張を親の直下にインデント表示する`groupCollectionItems`を実装。評価ロジック（Phase 4）は変更せず、拡張では案内文に置換。
+
+### Phase 6-A〜6-D（プレイを起点とした活用）
+- **6-A（DB・Repository）** — T-46〜T-49: `play_sessions`/`play_session_expansions`を追加（schemaVersion 7）。評価スケールをBGGの尺度に統一（評価1-10、重さの体感1.0-5.0）。`PlaySessionRepository`を新規実装。
+- **6-B（UI）** — T-50〜T-53: ゲーム詳細画面に「プレイ記録」セクションと`PlaySessionFormPage`を追加。追加・削除のみ（編集なし）。
+- **6-C（探す・絞り込み拡充）** — T-54〜T-57: `CollectionListItem`に`playCount`/`lastPlayedDate`を追加し、メカニクス・デザイナー・拡張あり・未プレイのフィルタと最終プレイ日順ソートを既存の一覧に統合。
+- **6-D（プレイ傾向分析）** — T-58〜T-61: `PlayAnalyticsPage`を新規追加。よく遊ぶメカニクス/デザイナー、評価が高いメカニクス/デザイナー、公称時間との差、人数別評価、「最近遊んでいないお気に入り」を可視化。`dashboard_page.dart`の共有ウィジェットを`analytics_sections.dart`に抽出。
+
+### Phase 7（設定画面での言語選択）
+`assets/i18n/`配下のJSONを`AssetManifest`で動的列挙し、`_meta`（locale/displayName）から選択肢を構築。`shared_preferences`に言語設定を保存（秘密情報ではないためセキュアストレージとは分離）。選択は即時反映、未対応言語は英語にフォールバック。`pubspec.yaml`のi18nアセット指定を個別列挙からフォルダ指定に変更し、新規言語ファイルの追加だけで選択肢に出るようにした。
+
+### Phase 8（ゲーム名のUI言語連動表示）
+従来 `collection_repository.dart` にあった「常に日本語優先」のハードコードされた表示名解決ロジック（`resolveJapaneseDisplayName`/`resolveJapaneseSubtitle`）を、`domain/display_names.dart`の言語引数付きリゾルバ（`resolveDisplayName`/`resolveSubtitle`）に置き換え。UI言語に応じて日本語名/英語名を優先表示し、無い場合は英語名にフォールバック。検索は全言語名を対象にしたまま維持（回帰なし）。
+
+---
+
+## 6. 運用改善・後続対応（2026-06）
+
+Phase 8完了後、機能追加よりも品質・運用面の改善を中心に対応した。
+
+### 拡張の親解決まわりの改善
+- **ExpansionParentSelection**: BGGの拡張リンクが複数の親候補を持ちうるケース（同一シリーズの複数版等）で、Phase 5時点の「最初の1件を採用」という単純化が誤判定を招く場合があったため、親候補の解決ロジックを補強した。
+- **ExpansionCandidateOptIn**: 新規ベースゲーム登録直後に表示される拡張候補シートの体験を見直し、ユーザーが任意のタイミングで確認・スキップできる形に調整した。
+
+### UI仕上げ
+- **DetailPageCleanup**: ゲーム詳細画面の文言・セクション構成を整理し、表示の重複や分かりにくい表現を解消した。
+
+### コレクション一覧のパフォーマンス改修
+ゲームを100件以上登録すると一覧のスクロールが滑らかでなくなる、という不具合を調査し、3つの原因を特定・修正した。
+
+1. サムネイル画像が`cacheWidth`/`cacheHeight`を指定せずソース解像度のままデコードされていた → 実際の表示物理ピクセルサイズに基づくデコードサイズ指定を追加。
+2. `AnimatedCrossFade`が折りたたみ中の拡張タイル（画像含む）も常にビルド・描画していた → `AnimatedSize`＋条件分岐ビルドに変更し、見えていないタイルのコストをゼロに。
+3. `CollectionRepository.list()`/`facets()`、`PlaySessionRepository.listAll()`/`listForGame()`がゲーム件数・プレイ記録件数に比例したN+1クエリ（1件ずつのDB往復）になっていた → 一括取得＋メモリ上のマップ参照に変更し、DB往復回数を件数によらず一定にした。
+
+### GameUPCオフラインキャッシュ化
+GameUPC側の無償API提供に契約的な保証がないことを踏まえ、ランタイムAPI依存を下げるための施策。
+
+- GameUPCが公開しているCSVダンプ（`https://gameupc.com/dumps/latest/gameupc.csv`）をビルド時に同梱（`assets/gameupc/gameupc_seed.csv`）し、初回起動時に自動でローカルキャッシュ（`gameupc_cache`テーブル、schemaVersion 8）へ取り込む。
+- 設定画面から手動でオンライン更新を試みられるが、自動バックグラウンド更新は行わない（GameUPC側への配慮、既存の「明示操作のみで外部API呼び出し」方針との一貫性）。
+- CSVのフィールド内カンマ・先頭ゼロのバーコード・全ゼロのダミー行など、実データに即した正規化・除外処理を実装。
+- バーコード解決の優先順位は「ローカル学習済み→GameUPCオフラインキャッシュ→ライブGameUPC API→手動検索」に拡張（§3.3参照）。
+
+### 翻訳機能の残骸整理
+説明文のGemini翻訳機能はUIから既に削除されていたが、バックエンド実装（`DescriptionTranslationRepository`/`GeminiTranslationClient`）・関連provider・テスト・i18n文言・README記述が孤立して残っていた。これらを完全に削除し、Geminiキーの設定画面の表示を「写真・棚画像の認識」専用の表現に統一した。`Games.descriptionJa`カラムはデータ保護のため変更していない（マイグレーションなし）。
+
+### GitHub配布対応
+Google Play公開ではなくGitHub Releasesでの配布に方針変更したことに伴う対応。
+
+- リリースビルドのAndroidManifestに`INTERNET`権限が欠落していた実装バグを修正（配布方法に関係なく必須の修正）。
+- `applicationId`/`namespace`をFlutterテンプレートのデフォルト値（`com.example.*`）から一意な値に変更。
+- リリース署名を、`key.properties`が存在しない場合は明示的にビルドを失敗させる構成にし、debug鍵での誤配布を構造的に防止。
+- リポジトリルートに`LICENSE`（MIT）を追加。
+- 設定画面にBGG/GameUPCの出典クレジット表示を追加（BGG XML API利用規約の必須条件）。
+- READMEにGitHub Releases経由のインストール手順・Play Protectの警告に関する案内・SHA-256検証手順を追記。
+
+---
+
+## 7. テスト構成
+
+`test/`配下は実装順の連番（t01〜t34、一部は機能追加に伴い既存ファイルへのケース追加で対応）。主な対象:
+
+| 範囲 | 対象 |
+|---|---|
+| t01〜t10 | i18n、DB、BGG APIクライアント/パーサ、登録Repository、エクスポート、設定/バックアップ |
+| t11〜t14 | バーコード正規化、barcode_map、箱写真/棚写真認識 |
+| t15〜t19 | コレクション分析、BGGコレクション取込、複雑度テーブル/学習曲線 |
+| t20〜t27 | 拡張パーサ/登録/グルーピング、DBマイグレーション(v6/v7)、GameUPCクライアント、プレイ記録Repository |
+| t28〜t32 | プレイ記録UI、BGG関係性ソース、プレイ傾向分析、プレイ対象者、言語設定、表示名 |
+| t33〜t34 | GameUPCオフラインキャッシュRepository、DBマイグレーション(v8) |
+
+各タスク完了時に `flutter analyze`（警告ゼロ）・`flutter test`（全件パス）を確認することを完了条件としている。
+
+---
+
+## 8. 既知の未解決事項
+
+- **GameUPC CSVダンプの再配布可否**: `assets/gameupc/gameupc_seed.csv`としてアプリ・公開リポジトリに同梱しているが、GameUPC側の正式な利用規約文書は確認できておらず、開発者本人からGameUPCへの直接確認が未完了。Bulk再配布が問題になった場合は、シードデータの削除・縮小を検討する必要がある。
+- **対象SDKバージョンの確認**: GitHub配布ではPlay Storeのような強制力はないが、新しいAndroidバージョンでの非互換警告を避けるため、`targetSdk`が妥当な水準にあるか定期的に確認すること。
+
+---
+
+## 9. 参照
+
+- `docs/REQUIREMENTS.md` — 統合版要件定義書
+- `docs/archive/` — フェーズ別の元のREQUIREMENTS/DEVELOPMENT_BRIEF文書一式（詳細なタスク分割・受け入れ基準・コードスニペットはこちら）
+- `README.md` / `README.ja.md` — エンドユーザー・開発者向けセットアップ手順
