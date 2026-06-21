@@ -256,7 +256,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ),
                 const Divider(height: 32),
                 Text(
-                  t.t('settings.translationOption'),
+                  t.t('settings.geminiVisionOption'),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 4),
