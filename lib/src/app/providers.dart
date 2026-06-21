@@ -7,17 +7,20 @@ import '../core/constants.dart';
 import '../core/clock.dart';
 import '../data/backup/backup_service.dart';
 import '../data/bgg/bgg_api_client.dart';
+import '../data/bgg/bgg_relationship_source.dart';
 import '../data/bgg/bgg_transport.dart';
 import '../data/bgg/bgg_xml_parser.dart';
 import '../data/db/app_database.dart';
 import '../data/export/yaml_exporter.dart';
 import '../data/gameupc/game_upc_client.dart';
+import '../data/gameupc/game_upc_csv_transport.dart';
 import '../data/repo/barcode_map_repository.dart';
 import '../data/repo/bgg_collection_importer.dart';
 import '../data/repo/bgg_collection_repository.dart';
 import '../data/repo/bgg_registration_repository.dart';
 import '../data/repo/box_recognition_repository.dart';
 import '../data/repo/collection_repository.dart';
+import '../data/repo/game_upc_cache_repository.dart';
 import '../data/repo/information_update_repository.dart';
 import '../data/repo/local_game_repository.dart';
 import '../data/repo/play_session_repository.dart';
@@ -148,6 +151,23 @@ final gameUpcClientProvider = Provider<GameUpcClient>(
   (ref) => DioGameUpcClient(),
 );
 
+final gameUpcCsvTransportProvider = Provider<GameUpcCsvTransport>(
+  (ref) => DioGameUpcCsvTransport(),
+);
+
+final gameUpcCacheRepositoryProvider = Provider<GameUpcCacheRepository>((ref) {
+  return GameUpcCacheRepository(
+    database: ref.watch(appDatabaseProvider),
+    transport: ref.watch(gameUpcCsvTransportProvider),
+    clock: ref.watch(clockProvider),
+  );
+});
+
+final gameUpcCacheStatusProvider =
+    FutureProvider.autoDispose<GameUpcCacheStatus>((ref) {
+      return ref.watch(gameUpcCacheRepositoryProvider).status();
+    });
+
 final tokenGuideProvider = Provider<TokenAcquisitionGuide>(
   (ref) => const TokenAcquisitionGuide(),
 );
@@ -155,6 +175,10 @@ final tokenGuideProvider = Provider<TokenAcquisitionGuide>(
 final bggTransportProvider = Provider<BggTransport>((ref) => DioBggTransport());
 
 final bggParserProvider = Provider<BggXmlParser>((ref) => const BggXmlParser());
+
+final bggRelationshipSourceProvider = Provider<BggRelationshipSource>(
+  (ref) => DioBggRelationshipSource(),
+);
 
 final bggApiProvider = Provider<BggApi>((ref) {
   return BggApiClient(
@@ -174,6 +198,7 @@ final bggRegistrationRepositoryProvider = Provider<BggRegistrationRepository>((
     database: ref.watch(appDatabaseProvider),
     api: ref.watch(bggApiProvider),
     parser: ref.watch(bggParserProvider),
+    relationshipSource: ref.watch(bggRelationshipSourceProvider),
     tokenProvider: ref.watch(secureSettingsProvider),
   );
 });

@@ -66,6 +66,7 @@
                  "cameraHint":  "JAN/EAN-13バーコードを枠内に合わせてください。",
                  "manualFallback":  "この環境ではカメラを使用できないか、権限が許可されていません。JANを手入力してください。",
                  "resolving":  "JAN {jan} を確認しています。",
+                 "cacheResolving":  "オフラインデータでJAN {jan} を照合しています。",
                  "gameUpcResolving":  "GameUPCでJAN {jan} を照会しています。",
                  "gameUpcCandidatesTitle":  "GameUPC候補",
                  "gameUpcCandidatesBody":  "該当するゲームを選んでください。検索語: {query}",
@@ -288,6 +289,14 @@
                      "statusUnset":  "未設定",
                      "backupDone":  "バックアップを作成しました: {path}",
                      "backupFailed":  "バックアップに失敗しました。"
+                     ,"gameUpcCacheTitle":  "GameUPCオフラインデータ",
+                     "gameUpcCacheStatus":  "{count}件のバーコード情報（{sourceLabel}、{date}時点）",
+                     "gameUpcCacheNotImported":  "未読み込み",
+                     "gameUpcCacheSourceBundled":  "内蔵データ",
+                     "gameUpcCacheSourceRemote":  "オンライン更新",
+                     "gameUpcCacheUpdateButton":  "最新データを取得",
+                     "gameUpcCacheUpdateSucceeded":  "GameUPCオフラインデータを更新しました。",
+                     "gameUpcCacheUpdateFailed":  "データ取得に失敗しました。既存のデータを引き続き使用します。"
                  },
     "bggImport":  {
                       "title":  "BGGコレクション一括取り込み",
@@ -327,6 +336,9 @@
                      "playerScalability":  "人数対応力",
                      "luckDependence":  "運依存",
                      "expansionNotice":  "分析指標は基本ゲームのみを対象に計算されます。親ゲームを開くと分析プロファイルを確認できます。",
+                     "narrativeLearningCurve":  "学習曲線: {type}",
+                     "narrativeMasteryTime":  "ゲームに慣れて、安定して良い判断ができるようになるまでの目安は{masteryTime}です。",
+                     "narrativeDepthReplay":  "戦略の深さは{depth}です。リプレイ性は{replay}です。",
                      "depth":  {
                                    "very_deep":  "非常に深い",
                                    "deep":  "深い",
@@ -339,15 +351,15 @@
                  },
     "learning_curve":  {
                            "types":  {
-                                         "steep":  "急で深い",
-                                         "steep_then_moderate":  "急だが中程度",
-                                         "steep_then_shallow":  "急だが浅い",
-                                         "moderate_then_deep":  "中程度から深い",
-                                         "moderate":  "中程度",
-                                         "moderate_then_shallow":  "中程度から浅い",
-                                         "gentle_then_deep":  "緩やかで深い",
-                                         "gentle_then_moderate":  "緩やかで中程度",
-                                         "gentle":  "緩やか"
+                                         "steep":  "最初は覚えることが多くて大変な上に、慣れてからも奥が深く、極めるまで時間がかかります。",
+                                         "steep_then_moderate":  "最初は覚えることが多くて大変ですが、深さ自体はそこまで底なしではありません。",
+                                         "steep_then_shallow":  "最初は覚えることが多い割に、慣れてしまえば打ち手のパターンは限られています。",
+                                         "moderate_then_deep":  "覚えることはそれなりにありますが、突き詰めるほど奥が深く、長く遊んでも飽きません。",
+                                         "moderate":  "覚えることも深さも、ちょうど中くらいです。気負わず遊びながら上達できます。",
+                                         "moderate_then_shallow":  "覚えることはそれなりにありますが、慣れてしまえば打ち手のパターンはそれほど多くありません。",
+                                         "gentle_then_deep":  "ルールはすぐに覚えられますが、突き詰めるほど奥が深く、長く遊んでも新しい発見があります。",
+                                         "gentle_then_moderate":  "ルールはすぐに覚えられて、深さもほどよくあります。気軽に始めて少しずつ戦略を深められます。",
+                                         "gentle":  "ルールはすぐに覚えられ、戦略もシンプルです。気軽に何度でも遊べます。"
                                      }
                        },
     "player_types":  {
@@ -387,7 +399,15 @@
                       "candidatesTitle":  "拡張候補",
                       "candidatesEmpty":  "候補はすべて登録済みです。",
                       "register":  "登録",
-                      "closeCandidates":  "閉じる"
+                      "closeCandidates":  "閉じる",
+                      "parentCandidatesTitle":  "親ゲーム候補",
+                      "parentCandidatesBody":  "該当する親ゲームを選んでください。",
+                      "parentChoose":  "これに決定",
+                      "parentDecideLater":  "あとで決める",
+                      "parentUndetermined":  "親ゲーム未確定",
+                      "changeParent":  "親ゲームを選び直す",
+                      "parentUpdated":  "親ゲームを更新しました。",
+                      "checkCandidates":  "拡張候補を確認"
                   },
     "export":  {
                    "title":  "エクスポート",

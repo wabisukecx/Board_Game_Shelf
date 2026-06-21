@@ -1,16 +1,19 @@
 name: bg_shelf_scanner
 description: Board game collection manager for BGG search, local records, and analyzer-compatible YAML export.
 publish_to: none
-version: 0.1.0+1
+version: 0.1.2+3
 
 environment:
   sdk: ^3.11.0
 
 dependencies:
   crypto: ^3.0.7
+  csv: ^8.0.0
   dio: ^5.9.0
   drift: ^2.30.0
   flutter:
+    sdk: flutter
+  flutter_localizations:
     sdk: flutter
   flutter_riverpod: ^2.6.1
   flutter_secure_storage: ^10.0.0-beta.4
@@ -37,3 +40,4 @@ flutter:
   assets:
     - assets/i18n/
     - assets/analysis/
+    - assets/gameupc/

@@ -94,10 +94,134 @@ void main() {
     expect(result.soloSuitability, 1.0);
     expect(result.playerScalability, 3.0);
   });
+
+  test(
+    'strategic depth applies weight once without a final playtime multiplier',
+    () async {
+      final light = await _insertAndFind(
+        database,
+        id: 'weight-light',
+        weight: 2.0,
+        playingTime: 60,
+      );
+      final heavy = await _insertAndFind(
+        database,
+        id: 'weight-heavy',
+        weight: 5.0,
+        playingTime: 60,
+      );
+      final analyzer = LearningCurveAnalyzer(
+        tables: tables,
+        clock: const _FixedClock(2026),
+      );
+
+      final difference =
+          analyzer.analyze(heavy).strategicDepth -
+          analyzer.analyze(light).strategicDepth;
+
+      expect(difference, closeTo(0.9, 0.15));
+    },
+  );
+
+  test(
+    'six or more mechanics makes very deep games take longer to master',
+    () async {
+      final fiveMechanics = await _insertAndFind(
+        database,
+        id: 'five-mechanics',
+        mechanics: const ['High 1', 'High 2', 'High 3', 'High 4', 'High 5'],
+        categories: const ['Strategy'],
+        weight: 5.0,
+        minAge: 14,
+        maxPlayers: 5,
+        playingTime: 120,
+      );
+      final sixMechanics = await _insertAndFind(
+        database,
+        id: 'six-mechanics',
+        mechanics: const [
+          'High 1',
+          'High 2',
+          'High 3',
+          'High 4',
+          'High 5',
+          'High 6',
+        ],
+        categories: const ['Strategy'],
+        weight: 5.0,
+        minAge: 14,
+        maxPlayers: 5,
+        playingTime: 120,
+      );
+      final analyzer = LearningCurveAnalyzer(
+        tables: tables,
+        clock: const _FixedClock(2026),
+      );
+      final fiveResult = analyzer.analyze(fiveMechanics);
+      final sixResult = analyzer.analyze(sixMechanics);
+
+      expect(fiveResult.strategicDepth, greaterThan(4.3));
+      expect(sixResult.strategicDepth, greaterThan(4.3));
+      expect(fiveResult.masteryTime, 'medium_to_long');
+      expect(sixResult.masteryTime, 'long');
+    },
+  );
+
+  test(
+    'mastery time uses the same 3.5 strategic depth threshold as labels',
+    () async {
+      final game = await _insertAndFind(
+        database,
+        id: 'threshold',
+        weight: 5.0,
+        playingTime: 60,
+      );
+      final result = LearningCurveAnalyzer(
+        tables: tables,
+        clock: const _FixedClock(2026),
+      ).analyze(game);
+
+      expect(result.strategicDepth, inInclusiveRange(3.2, 3.5));
+      expect(result.strategicDepthLabel, 'medium');
+      expect(result.masteryTime, 'short');
+    },
+  );
+
+  test(
+    'unranked games do not receive a longevity replayability bonus',
+    () async {
+      final oldUnranked = await _insertAndFind(
+        database,
+        id: 'old-unranked',
+        yearPublished: '2000',
+        mechanics: const ['Variable Player Powers'],
+        categories: const ['Strategy'],
+        playingTime: 60,
+      );
+      final recentUnranked = await _insertAndFind(
+        database,
+        id: 'recent-unranked',
+        yearPublished: '2025',
+        mechanics: const ['Variable Player Powers'],
+        categories: const ['Strategy'],
+        playingTime: 60,
+      );
+      final analyzer = LearningCurveAnalyzer(
+        tables: tables,
+        clock: const _FixedClock(2026),
+      );
+
+      expect(
+        analyzer.analyze(oldUnranked).replayability,
+        analyzer.analyze(recentUnranked).replayability,
+      );
+    },
+  );
 }
 
 Future<Game> _insertAndFind(
   AppDatabase database, {
+  String id = '1',
   String yearPublished = '2020',
   List<String> mechanics = const [],
   List<String> categories = const [],
@@ -109,7 +233,7 @@ Future<Game> _insertAndFind(
   int? minAge,
 }) async {
   await database.upsertBggGame(
-    bggId: '1',
+    bggId: id,
     names: const GameNames(primary: 'Test Game', english: 'Test Game'),
     yearPublished: yearPublished,
     publisherMinPlayers: minPlayers,
@@ -121,7 +245,7 @@ Future<Game> _insertAndFind(
     weight: weight,
     ranks: ranks,
   );
-  return (await database.findGame('1'))!;
+  return (await database.findGame(id))!;
 }
 
 ComplexityTables _tables() {
@@ -143,6 +267,30 @@ Variable Player Powers:
   complexity: 3.2
   strategic_value: 4.1
   interaction_value: 3.2
+High 1:
+  complexity: 5.0
+  strategic_value: 5.0
+  interaction_value: 5.0
+High 2:
+  complexity: 5.0
+  strategic_value: 5.0
+  interaction_value: 5.0
+High 3:
+  complexity: 5.0
+  strategic_value: 5.0
+  interaction_value: 5.0
+High 4:
+  complexity: 5.0
+  strategic_value: 5.0
+  interaction_value: 5.0
+High 5:
+  complexity: 5.0
+  strategic_value: 5.0
+  interaction_value: 5.0
+High 6:
+  complexity: 5.0
+  strategic_value: 5.0
+  interaction_value: 5.0
 ''',
     categoriesYaml: '''
 Strategy:

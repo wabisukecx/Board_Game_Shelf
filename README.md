@@ -133,7 +133,8 @@ JAN/EAN-13 barcode registration on Android.
 
 - The camera reads EAN-13 and UPC-A. UPC-A is normalized to EAN-13 with a leading `0`.
 - If the JAN is already in the local barcode map, the app opens the game details offline.
-- Unknown JAN values are looked up through GameUPC before falling back to manual BGG search. The current public test API works without an API key.
+- Unknown JAN values are resolved through the learned local map, bundled GameUPC offline data, the GameUPC API, then manual search.
+- The bundled GameUPC data needs no API key and can be refreshed manually in Settings. A failed refresh keeps the existing data intact.
 - If GameUPC returns a verified BGG game, the app registers it through the BGG registration flow (requires a BGG token) and saves the JAN-to-game mapping.
 - If GameUPC returns multiple candidates, the app asks you to choose one, prefers a Japanese version for the GameUPC vote when available (otherwise English), posts the selection back to GameUPC with a stable device user id, then registers and links the JAN.
 - If GameUPC is unset or finds no match, unknown JAN values go through BGG search or manual registration. On success, the mapping is saved for next time.
@@ -141,6 +142,8 @@ JAN/EAN-13 barcode registration on Android.
 - Android requires the `CAMERA` permission.
 
 The app does not send JAN values directly to BGG as a barcode lookup. BGG search remains title-based; GameUPC is the optional UPC-to-BGG bridge.
+
+Offline data provided by [GameUPC](https://gameupc.com).
 
 ## Photo Recognition
 
@@ -176,9 +179,10 @@ Manual batch import of an owned BoardGameGeek collection (requires a BGG token).
 ## Expansion Management
 
 - BGG `boardgameexpansion` links are parsed during the registration flow.
-- Base games can show unregistered expansion candidates immediately after registration.
+- Registration completes without automatically opening expansion candidates. Use **Check expansion candidates** from game details to add related games when needed.
 - Expansions are saved as normal collection records with `gameKind=expansion` and an optional `parentGameKey`.
 - Parent games do not have to be registered first; an expansion detail screen can register the parent later.
+- When BGG reports multiple possible parent editions, choose one during registration or later from the expansion detail screen.
 - List view nests registered expansions under their parent game (collapsed by default); grid view adds an expansion badge.
 - Learning analysis remains base-game only; expansion detail pages show a notice instead of learning metrics.
 - Analyzer-compatible YAML export is unchanged and adds no expansion-specific keys.

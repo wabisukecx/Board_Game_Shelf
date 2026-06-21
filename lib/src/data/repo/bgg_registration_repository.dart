@@ -1,4 +1,5 @@
 import '../bgg/bgg_api_client.dart';
+import '../bgg/bgg_relationship_source.dart';
 import '../bgg/bgg_token_provider.dart';
 import '../bgg/bgg_xml_parser.dart';
 import '../db/app_database.dart';
@@ -10,15 +11,18 @@ class BggRegistrationRepository {
     required AppDatabase database,
     required BggApi api,
     required BggXmlParser parser,
+    required BggRelationshipSource relationshipSource,
     required BggTokenProvider tokenProvider,
   }) : _database = database,
        _api = api,
        _parser = parser,
+       _relationshipSource = relationshipSource,
        _tokenProvider = tokenProvider;
 
   final AppDatabase _database;
   final BggApi _api;
   final BggXmlParser _parser;
+  final BggRelationshipSource _relationshipSource;
   final BggTokenProvider _tokenProvider;
 
   Future<List<BggSearchResult>> search(
@@ -45,10 +49,22 @@ class BggRegistrationRepository {
     final details = _parser.parseThing(source);
     _validateDetails(details);
 
+    List<NamedBggValue>? relationshipCandidates;
+    if (details.itemType == AppConstants.bggExpansionLinkType) {
+      try {
+        relationshipCandidates = await _relationshipSource
+            .registrationCandidates(details.bggId);
+      } catch (_) {
+        // Parent resolution falls back to XML relationship links when the
+        // relationship endpoint is temporarily unavailable.
+      }
+    }
     final kind = await resolveGameKindWithLookup(
       details,
       api: _api,
       parser: _parser,
+      relationshipCandidates:
+          relationshipCandidates ?? details.expansionRelationshipLinks,
     );
 
     await _database.upsertBggGame(
@@ -87,20 +103,44 @@ class BggRegistrationRepository {
     if (game == null) {
       throw StateError('Registered game was not found: ${details.bggId}');
     }
-    final expansionCandidates = <NamedBggValue>[];
-    for (final candidate in details.expansionLinks) {
+    return BggRegistrationCreated(
+      game,
+      parentCandidates: kind.parentCandidates,
+    );
+  }
+
+  Future<void> setParentGameKey(String gameKey, String parentGameKey) {
+    return _database.updateParentGameKey(gameKey, parentGameKey);
+  }
+
+  Future<List<NamedBggValue>> fetchParentCandidates(String bggId) {
+    return _relationshipSource.registrationCandidates(bggId);
+  }
+
+  Future<List<NamedBggValue>> fetchExpansionCandidates(String bggId) async {
+    final candidates = await _relationshipSource.registrationCandidates(bggId);
+    return _filterUnregisteredCandidates(bggId, candidates);
+  }
+
+  Future<List<NamedBggValue>> _filterUnregisteredCandidates(
+    String selfBggId,
+    List<NamedBggValue> candidates,
+  ) async {
+    final result = <NamedBggValue>[];
+    final seenCandidateIds = <String>{};
+    for (final candidate in candidates) {
       final candidateId = candidate.bggId;
-      if (candidateId == null || candidateId.isEmpty) {
+      if (candidateId == null ||
+          candidateId.isEmpty ||
+          candidateId == selfBggId ||
+          !seenCandidateIds.add(candidateId)) {
         continue;
       }
       if (await _database.findGame(candidateId) == null) {
-        expansionCandidates.add(candidate);
+        result.add(candidate);
       }
     }
-    return BggRegistrationCreated(
-      game,
-      expansionCandidates: expansionCandidates,
-    );
+    return result;
   }
 
   Future<void> _requireToken() async {
@@ -142,6 +182,7 @@ Future<GameKindResolution> resolveGameKindWithLookup(
   BggGameDetails details, {
   required BggApi api,
   required BggXmlParser parser,
+  required List<NamedBggValue> relationshipCandidates,
 }) async {
   final fallback = resolveGameKind(details);
   if (details.itemType != AppConstants.bggExpansionLinkType) {
@@ -150,7 +191,7 @@ Future<GameKindResolution> resolveGameKindWithLookup(
 
   final seen = <String>{};
   final candidates = [
-    for (final candidate in details.expansionRelationshipLinks)
+    for (final candidate in relationshipCandidates)
       if (candidate.bggId case final id?)
         if (id.isNotEmpty && id != details.bggId && seen.add(id)) candidate,
   ];
@@ -158,6 +199,7 @@ Future<GameKindResolution> resolveGameKindWithLookup(
     return fallback;
   }
 
+  final confirmedParents = <NamedBggValue>[];
   for (final candidate in candidates) {
     final id = candidate.bggId;
     if (id == null || id.isEmpty) {
@@ -167,24 +209,36 @@ Future<GameKindResolution> resolveGameKindWithLookup(
       final source = await api.fetchThing(id: id, stats: false);
       final candidateDetails = parser.parseThing(source);
       if (candidateDetails.itemType == AppConstants.bggCollectionSubtype) {
-        return GameKindResolution(
-          gameKind: AppConstants.gameKindExpansion,
-          parentGameKey: id,
-        );
+        confirmedParents.add(candidate);
       }
     } catch (_) {
       continue;
     }
   }
 
-  return fallback;
+  return switch (confirmedParents.length) {
+    0 => fallback,
+    1 => GameKindResolution(
+      gameKind: AppConstants.gameKindExpansion,
+      parentGameKey: confirmedParents.single.bggId,
+    ),
+    _ => GameKindResolution(
+      gameKind: AppConstants.gameKindExpansion,
+      parentCandidates: confirmedParents,
+    ),
+  };
 }
 
 class GameKindResolution {
-  const GameKindResolution({required this.gameKind, this.parentGameKey});
+  const GameKindResolution({
+    required this.gameKind,
+    this.parentGameKey,
+    this.parentCandidates = const [],
+  });
 
   final String gameKind;
   final String? parentGameKey;
+  final List<NamedBggValue> parentCandidates;
 }
 
 sealed class BggRegistrationResult {
@@ -194,18 +248,13 @@ sealed class BggRegistrationResult {
 }
 
 class BggRegistrationCreated extends BggRegistrationResult {
-  const BggRegistrationCreated(
-    super.game, {
-    this.expansionCandidates = const [],
-  });
+  const BggRegistrationCreated(super.game, {this.parentCandidates = const []});
 
-  final List<NamedBggValue> expansionCandidates;
+  final List<NamedBggValue> parentCandidates;
 }
 
 class BggRegistrationAlreadyExists extends BggRegistrationResult {
   const BggRegistrationAlreadyExists(super.game);
-
-  List<NamedBggValue> get expansionCandidates => const [];
 }
 
 class BggTokenRequiredException implements Exception {

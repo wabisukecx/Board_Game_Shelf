@@ -3050,6 +3050,319 @@ class SettingsEntriesCompanion extends UpdateCompanion<SettingsEntry> {
   }
 }
 
+class $GameUpcCacheEntriesTable extends GameUpcCacheEntries
+    with TableInfo<$GameUpcCacheEntriesTable, GameUpcCacheEntry> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GameUpcCacheEntriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _barcodeMeta = const VerificationMeta(
+    'barcode',
+  );
+  @override
+  late final GeneratedColumn<String> barcode = GeneratedColumn<String>(
+    'barcode',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _bggIdMeta = const VerificationMeta('bggId');
+  @override
+  late final GeneratedColumn<String> bggId = GeneratedColumn<String>(
+    'bgg_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _versionIdMeta = const VerificationMeta(
+    'versionId',
+  );
+  @override
+  late final GeneratedColumn<String> versionId = GeneratedColumn<String>(
+    'version_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [barcode, bggId, versionId, name];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'gameupc_cache';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<GameUpcCacheEntry> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('barcode')) {
+      context.handle(
+        _barcodeMeta,
+        barcode.isAcceptableOrUnknown(data['barcode']!, _barcodeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_barcodeMeta);
+    }
+    if (data.containsKey('bgg_id')) {
+      context.handle(
+        _bggIdMeta,
+        bggId.isAcceptableOrUnknown(data['bgg_id']!, _bggIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bggIdMeta);
+    }
+    if (data.containsKey('version_id')) {
+      context.handle(
+        _versionIdMeta,
+        versionId.isAcceptableOrUnknown(data['version_id']!, _versionIdMeta),
+      );
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {barcode};
+  @override
+  GameUpcCacheEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return GameUpcCacheEntry(
+      barcode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}barcode'],
+      )!,
+      bggId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}bgg_id'],
+      )!,
+      versionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}version_id'],
+      ),
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+    );
+  }
+
+  @override
+  $GameUpcCacheEntriesTable createAlias(String alias) {
+    return $GameUpcCacheEntriesTable(attachedDatabase, alias);
+  }
+}
+
+class GameUpcCacheEntry extends DataClass
+    implements Insertable<GameUpcCacheEntry> {
+  final String barcode;
+  final String bggId;
+  final String? versionId;
+  final String name;
+  const GameUpcCacheEntry({
+    required this.barcode,
+    required this.bggId,
+    this.versionId,
+    required this.name,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['barcode'] = Variable<String>(barcode);
+    map['bgg_id'] = Variable<String>(bggId);
+    if (!nullToAbsent || versionId != null) {
+      map['version_id'] = Variable<String>(versionId);
+    }
+    map['name'] = Variable<String>(name);
+    return map;
+  }
+
+  GameUpcCacheEntriesCompanion toCompanion(bool nullToAbsent) {
+    return GameUpcCacheEntriesCompanion(
+      barcode: Value(barcode),
+      bggId: Value(bggId),
+      versionId: versionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(versionId),
+      name: Value(name),
+    );
+  }
+
+  factory GameUpcCacheEntry.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return GameUpcCacheEntry(
+      barcode: serializer.fromJson<String>(json['barcode']),
+      bggId: serializer.fromJson<String>(json['bggId']),
+      versionId: serializer.fromJson<String?>(json['versionId']),
+      name: serializer.fromJson<String>(json['name']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'barcode': serializer.toJson<String>(barcode),
+      'bggId': serializer.toJson<String>(bggId),
+      'versionId': serializer.toJson<String?>(versionId),
+      'name': serializer.toJson<String>(name),
+    };
+  }
+
+  GameUpcCacheEntry copyWith({
+    String? barcode,
+    String? bggId,
+    Value<String?> versionId = const Value.absent(),
+    String? name,
+  }) => GameUpcCacheEntry(
+    barcode: barcode ?? this.barcode,
+    bggId: bggId ?? this.bggId,
+    versionId: versionId.present ? versionId.value : this.versionId,
+    name: name ?? this.name,
+  );
+  GameUpcCacheEntry copyWithCompanion(GameUpcCacheEntriesCompanion data) {
+    return GameUpcCacheEntry(
+      barcode: data.barcode.present ? data.barcode.value : this.barcode,
+      bggId: data.bggId.present ? data.bggId.value : this.bggId,
+      versionId: data.versionId.present ? data.versionId.value : this.versionId,
+      name: data.name.present ? data.name.value : this.name,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GameUpcCacheEntry(')
+          ..write('barcode: $barcode, ')
+          ..write('bggId: $bggId, ')
+          ..write('versionId: $versionId, ')
+          ..write('name: $name')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(barcode, bggId, versionId, name);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is GameUpcCacheEntry &&
+          other.barcode == this.barcode &&
+          other.bggId == this.bggId &&
+          other.versionId == this.versionId &&
+          other.name == this.name);
+}
+
+class GameUpcCacheEntriesCompanion extends UpdateCompanion<GameUpcCacheEntry> {
+  final Value<String> barcode;
+  final Value<String> bggId;
+  final Value<String?> versionId;
+  final Value<String> name;
+  final Value<int> rowid;
+  const GameUpcCacheEntriesCompanion({
+    this.barcode = const Value.absent(),
+    this.bggId = const Value.absent(),
+    this.versionId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  GameUpcCacheEntriesCompanion.insert({
+    required String barcode,
+    required String bggId,
+    this.versionId = const Value.absent(),
+    required String name,
+    this.rowid = const Value.absent(),
+  }) : barcode = Value(barcode),
+       bggId = Value(bggId),
+       name = Value(name);
+  static Insertable<GameUpcCacheEntry> custom({
+    Expression<String>? barcode,
+    Expression<String>? bggId,
+    Expression<String>? versionId,
+    Expression<String>? name,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (barcode != null) 'barcode': barcode,
+      if (bggId != null) 'bgg_id': bggId,
+      if (versionId != null) 'version_id': versionId,
+      if (name != null) 'name': name,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  GameUpcCacheEntriesCompanion copyWith({
+    Value<String>? barcode,
+    Value<String>? bggId,
+    Value<String?>? versionId,
+    Value<String>? name,
+    Value<int>? rowid,
+  }) {
+    return GameUpcCacheEntriesCompanion(
+      barcode: barcode ?? this.barcode,
+      bggId: bggId ?? this.bggId,
+      versionId: versionId ?? this.versionId,
+      name: name ?? this.name,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (barcode.present) {
+      map['barcode'] = Variable<String>(barcode.value);
+    }
+    if (bggId.present) {
+      map['bgg_id'] = Variable<String>(bggId.value);
+    }
+    if (versionId.present) {
+      map['version_id'] = Variable<String>(versionId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GameUpcCacheEntriesCompanion(')
+          ..write('barcode: $barcode, ')
+          ..write('bggId: $bggId, ')
+          ..write('versionId: $versionId, ')
+          ..write('name: $name, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $PlaySessionsTable extends PlaySessions
     with TableInfo<$PlaySessionsTable, PlaySession> {
   @override
@@ -3983,12 +4296,18 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SettingsEntriesTable settingsEntries = $SettingsEntriesTable(
     this,
   );
+  late final $GameUpcCacheEntriesTable gameUpcCacheEntries =
+      $GameUpcCacheEntriesTable(this);
   late final $PlaySessionsTable playSessions = $PlaySessionsTable(this);
   late final $PlaySessionExpansionsTable playSessionExpansions =
       $PlaySessionExpansionsTable(this);
   late final Index collectionGameKeyIdx = Index(
     'collection_game_key_idx',
     'CREATE INDEX collection_game_key_idx ON collection (game_key)',
+  );
+  late final Index gameupcCacheBarcodeIdx = Index(
+    'gameupc_cache_barcode_idx',
+    'CREATE INDEX gameupc_cache_barcode_idx ON gameupc_cache (barcode)',
   );
   late final Index playSessionsGameKeyIdx = Index(
     'play_sessions_game_key_idx',
@@ -4004,9 +4323,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     barcodeMapEntries,
     apiCacheEntries,
     settingsEntries,
+    gameUpcCacheEntries,
     playSessions,
     playSessionExpansions,
     collectionGameKeyIdx,
+    gameupcCacheBarcodeIdx,
     playSessionsGameKeyIdx,
   ];
 }
@@ -6190,6 +6511,203 @@ typedef $$SettingsEntriesTableProcessedTableManager =
       SettingsEntry,
       PrefetchHooks Function()
     >;
+typedef $$GameUpcCacheEntriesTableCreateCompanionBuilder =
+    GameUpcCacheEntriesCompanion Function({
+      required String barcode,
+      required String bggId,
+      Value<String?> versionId,
+      required String name,
+      Value<int> rowid,
+    });
+typedef $$GameUpcCacheEntriesTableUpdateCompanionBuilder =
+    GameUpcCacheEntriesCompanion Function({
+      Value<String> barcode,
+      Value<String> bggId,
+      Value<String?> versionId,
+      Value<String> name,
+      Value<int> rowid,
+    });
+
+class $$GameUpcCacheEntriesTableFilterComposer
+    extends Composer<_$AppDatabase, $GameUpcCacheEntriesTable> {
+  $$GameUpcCacheEntriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get barcode => $composableBuilder(
+    column: $table.barcode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get bggId => $composableBuilder(
+    column: $table.bggId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get versionId => $composableBuilder(
+    column: $table.versionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$GameUpcCacheEntriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $GameUpcCacheEntriesTable> {
+  $$GameUpcCacheEntriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get barcode => $composableBuilder(
+    column: $table.barcode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get bggId => $composableBuilder(
+    column: $table.bggId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get versionId => $composableBuilder(
+    column: $table.versionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$GameUpcCacheEntriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $GameUpcCacheEntriesTable> {
+  $$GameUpcCacheEntriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get barcode =>
+      $composableBuilder(column: $table.barcode, builder: (column) => column);
+
+  GeneratedColumn<String> get bggId =>
+      $composableBuilder(column: $table.bggId, builder: (column) => column);
+
+  GeneratedColumn<String> get versionId =>
+      $composableBuilder(column: $table.versionId, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+}
+
+class $$GameUpcCacheEntriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $GameUpcCacheEntriesTable,
+          GameUpcCacheEntry,
+          $$GameUpcCacheEntriesTableFilterComposer,
+          $$GameUpcCacheEntriesTableOrderingComposer,
+          $$GameUpcCacheEntriesTableAnnotationComposer,
+          $$GameUpcCacheEntriesTableCreateCompanionBuilder,
+          $$GameUpcCacheEntriesTableUpdateCompanionBuilder,
+          (
+            GameUpcCacheEntry,
+            BaseReferences<
+              _$AppDatabase,
+              $GameUpcCacheEntriesTable,
+              GameUpcCacheEntry
+            >,
+          ),
+          GameUpcCacheEntry,
+          PrefetchHooks Function()
+        > {
+  $$GameUpcCacheEntriesTableTableManager(
+    _$AppDatabase db,
+    $GameUpcCacheEntriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$GameUpcCacheEntriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$GameUpcCacheEntriesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$GameUpcCacheEntriesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> barcode = const Value.absent(),
+                Value<String> bggId = const Value.absent(),
+                Value<String?> versionId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => GameUpcCacheEntriesCompanion(
+                barcode: barcode,
+                bggId: bggId,
+                versionId: versionId,
+                name: name,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String barcode,
+                required String bggId,
+                Value<String?> versionId = const Value.absent(),
+                required String name,
+                Value<int> rowid = const Value.absent(),
+              }) => GameUpcCacheEntriesCompanion.insert(
+                barcode: barcode,
+                bggId: bggId,
+                versionId: versionId,
+                name: name,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$GameUpcCacheEntriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $GameUpcCacheEntriesTable,
+      GameUpcCacheEntry,
+      $$GameUpcCacheEntriesTableFilterComposer,
+      $$GameUpcCacheEntriesTableOrderingComposer,
+      $$GameUpcCacheEntriesTableAnnotationComposer,
+      $$GameUpcCacheEntriesTableCreateCompanionBuilder,
+      $$GameUpcCacheEntriesTableUpdateCompanionBuilder,
+      (
+        GameUpcCacheEntry,
+        BaseReferences<
+          _$AppDatabase,
+          $GameUpcCacheEntriesTable,
+          GameUpcCacheEntry
+        >,
+      ),
+      GameUpcCacheEntry,
+      PrefetchHooks Function()
+    >;
 typedef $$PlaySessionsTableCreateCompanionBuilder =
     PlaySessionsCompanion Function({
       Value<int> id,
@@ -7130,6 +7648,8 @@ class $AppDatabaseManager {
       $$ApiCacheEntriesTableTableManager(_db, _db.apiCacheEntries);
   $$SettingsEntriesTableTableManager get settingsEntries =>
       $$SettingsEntriesTableTableManager(_db, _db.settingsEntries);
+  $$GameUpcCacheEntriesTableTableManager get gameUpcCacheEntries =>
+      $$GameUpcCacheEntriesTableTableManager(_db, _db.gameUpcCacheEntries);
   $$PlaySessionsTableTableManager get playSessions =>
       $$PlaySessionsTableTableManager(_db, _db.playSessions);
   $$PlaySessionExpansionsTableTableManager get playSessionExpansions =>

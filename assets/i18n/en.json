@@ -66,6 +66,7 @@
                  "cameraHint":  "Place a JAN/EAN-13 barcode inside the frame.",
                  "manualFallback":  "Camera is unavailable in this environment or permission was denied. Enter the JAN manually.",
                  "resolving":  "Checking JAN {jan}.",
+                 "cacheResolving":  "Checking JAN {jan} against offline data.",
                  "gameUpcResolving":  "Looking up JAN {jan} with GameUPC.",
                  "gameUpcCandidatesTitle":  "GameUPC candidates",
                  "gameUpcCandidatesBody":  "Choose the matching game. Search terms: {query}",
@@ -304,6 +305,14 @@
                      "statusUnset":  "Not set",
                      "backupDone":  "Backup created: {path}",
                      "backupFailed":  "Backup failed."
+                     ,"gameUpcCacheTitle":  "GameUPC offline data",
+                     "gameUpcCacheStatus":  "{count} barcode records ({sourceLabel}, as of {date})",
+                     "gameUpcCacheNotImported":  "Not imported",
+                     "gameUpcCacheSourceBundled":  "bundled data",
+                     "gameUpcCacheSourceRemote":  "online update",
+                     "gameUpcCacheUpdateButton":  "Get latest data",
+                     "gameUpcCacheUpdateSucceeded":  "GameUPC offline data updated.",
+                     "gameUpcCacheUpdateFailed":  "Could not get the data. Existing offline data will continue to be used."
                  },
     "bggImport":  {
                       "title":  "Import from BGG collection",
@@ -343,6 +352,9 @@
                      "playerScalability":  "Player scalability",
                      "luckDependence":  "Luck dependence",
                      "expansionNotice":  "Learning analysis is calculated for base games only. Open the parent game to view the analysis profile.",
+                     "narrativeLearningCurve":  "Learning curve: {type}",
+                     "narrativeMasteryTime":  "{masteryTime} — roughly how long it takes to start making consistently good decisions once you're comfortable with the rules.",
+                     "narrativeDepthReplay":  "Strategic depth is {depth}. Replayability is {replay}.",
                      "depth":  {
                                    "very_deep":  "Very deep",
                                    "deep":  "Deep",
@@ -355,15 +367,15 @@
                  },
     "learning_curve":  {
                            "types":  {
-                                         "steep":  "Steep and deep",
-                                         "steep_then_moderate":  "Steep then moderate",
-                                         "steep_then_shallow":  "Steep then shallow",
-                                         "moderate_then_deep":  "Moderate then deep",
-                                         "moderate":  "Moderate",
-                                         "moderate_then_shallow":  "Moderate then shallow",
-                                         "gentle_then_deep":  "Gentle then deep",
-                                         "gentle_then_moderate":  "Gentle then moderate",
-                                         "gentle":  "Gentle"
+                                         "steep":  "There's a lot to learn at first, and it stays deep once you're comfortable with it — mastering it takes real time.",
+                                         "steep_then_moderate":  "There's a lot to learn at first, but the depth itself isn't bottomless.",
+                                         "steep_then_shallow":  "There's a lot to learn at first, but once you're comfortable, there isn't a huge range of viable plays.",
+                                         "moderate_then_deep":  "There's a fair amount to learn, but it keeps getting deeper the more you play — you won't run out of new things to discover.",
+                                         "moderate":  "Both the learning curve and the depth are middle-of-the-road — easy to pick up and improve at gradually.",
+                                         "moderate_then_shallow":  "There's a fair amount to learn, but once you're comfortable, there isn't a huge range of strategies to explore.",
+                                         "gentle_then_deep":  "The rules are easy to pick up, but it keeps getting deeper the more you play.",
+                                         "gentle_then_moderate":  "The rules are easy to pick up, with a reasonable amount of depth to grow into.",
+                                         "gentle":  "The rules are easy to pick up and the strategy stays simple — easy to enjoy again and again."
                                      }
                        },
     "player_types":  {
@@ -403,7 +415,15 @@
                       "candidatesTitle":  "Expansion candidates",
                       "candidatesEmpty":  "All candidates are registered.",
                       "register":  "Register",
-                      "closeCandidates":  "Close"
+                      "closeCandidates":  "Close",
+                      "parentCandidatesTitle":  "Parent game candidates",
+                      "parentCandidatesBody":  "Choose the matching parent game.",
+                      "parentChoose":  "Choose this",
+                      "parentDecideLater":  "Decide later",
+                      "parentUndetermined":  "Parent game not selected",
+                      "changeParent":  "Choose another parent",
+                      "parentUpdated":  "Parent game updated.",
+                      "checkCandidates":  "Check expansion candidates"
                   },
     "export":  {
                    "title":  "Export",

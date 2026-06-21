@@ -6,6 +6,7 @@ import '../../data/bgg/bgg_api_client.dart';
 import '../../data/bgg/bgg_xml_parser.dart';
 import '../../data/repo/bgg_registration_repository.dart';
 import '../../core/constants.dart';
+import '../widgets/parent_game_candidate_dialog.dart';
 import 'game_detail_page.dart';
 import 'local_game_form_page.dart';
 import 'settings_page.dart';
@@ -130,10 +131,10 @@ class _SearchRegistrationPageState
           .registerBggId(result.bggId);
       if (!mounted) return;
       switch (outcome) {
-        case BggRegistrationCreated(:final game, :final expansionCandidates):
+        case BggRegistrationCreated(:final game, :final parentCandidates):
           await _learnPendingJan(game.gameKey);
-          if (expansionCandidates.isNotEmpty) {
-            await _showExpansionCandidates(expansionCandidates);
+          if (parentCandidates.isNotEmpty) {
+            await _showParentCandidates(game.gameKey, parentCandidates);
           }
           _snack(t.t('search.registered'));
           await Navigator.of(context).pushReplacement(
@@ -165,89 +166,25 @@ class _SearchRegistrationPageState
     }
   }
 
-  Future<void> _showExpansionCandidates(List<NamedBggValue> candidates) {
-    final t = ref.read(i18nProvider);
-    final remaining = [...candidates];
-    String? registeringId;
-    return showDialog<void>(
+  Future<void> _showParentCandidates(
+    String gameKey,
+    List<NamedBggValue> candidates,
+  ) async {
+    final repository = ref.read(bggRegistrationRepositoryProvider);
+    final selected = await showParentGameCandidateDialog(
       context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text(t.t('expansion.candidatesTitle')),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: remaining.isEmpty
-                    ? Text(t.t('expansion.candidatesEmpty'))
-                    : ListView.separated(
-                        shrinkWrap: true,
-                        itemCount: remaining.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
-                        itemBuilder: (context, index) {
-                          final candidate = remaining[index];
-                          final candidateId = candidate.bggId ?? '';
-                          final registering = registeringId == candidateId;
-                          return ListTile(
-                            title: Text(candidate.name),
-                            subtitle: Text('BGG ID: $candidateId'),
-                            trailing: registering
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : TextButton(
-                                    onPressed:
-                                        registeringId != null ||
-                                            candidateId.isEmpty
-                                        ? null
-                                        : () async {
-                                            setDialogState(
-                                              () => registeringId = candidateId,
-                                            );
-                                            try {
-                                              await ref
-                                                  .read(
-                                                    bggRegistrationRepositoryProvider,
-                                                  )
-                                                  .registerBggId(candidateId);
-                                              setDialogState(() {
-                                                remaining.removeAt(index);
-                                                registeringId = null;
-                                              });
-                                            } catch (_) {
-                                              setDialogState(
-                                                () => registeringId = null,
-                                              );
-                                              if (mounted) {
-                                                _snack(
-                                                  t.t('search.errorGeneric'),
-                                                );
-                                              }
-                                            }
-                                          },
-                                    child: Text(t.t('expansion.register')),
-                                  ),
-                          );
-                        },
-                      ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: registeringId == null
-                      ? () => Navigator.of(dialogContext).pop()
-                      : null,
-                  child: Text(t.t('expansion.closeCandidates')),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      t: ref.read(i18nProvider),
+      candidates: candidates,
     );
+    final parentId = selected?.bggId;
+    if (parentId == null || parentId.isEmpty) {
+      return;
+    }
+    await repository.setParentGameKey(gameKey, parentId);
+    final database = ref.read(appDatabaseProvider);
+    if (await database.findGame(parentId) == null) {
+      await repository.registerBggId(parentId);
+    }
   }
 
   Future<void> _learnPendingJan(String gameKey) async {

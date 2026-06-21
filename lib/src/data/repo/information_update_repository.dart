@@ -40,6 +40,7 @@ class InformationUpdateRepository {
       details,
       api: _api,
       parser: _parser,
+      relationshipCandidates: details.expansionRelationshipLinks,
     );
     final changes = _buildChanges(game, details, kind);
     final snapshot = _buildSnapshot(game, details);

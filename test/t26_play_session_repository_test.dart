@@ -221,6 +221,47 @@ void main() {
     expect(records[1].expansionGameKeys, ['111']);
   });
 
+  test(
+    'keeps multiple sorted expansion keys isolated to each session',
+    () async {
+      await _insertGame(database, key: '13', title: 'CATAN');
+      await _insertGame(
+        database,
+        key: '111',
+        title: 'Seafarers',
+        gameKind: AppConstants.gameKindExpansion,
+        parentGameKey: '13',
+      );
+      await _insertGame(
+        database,
+        key: '112',
+        title: 'Cities and Knights',
+        gameKind: AppConstants.gameKindExpansion,
+        parentGameKey: '13',
+      );
+      final first = await repository.recordSession(
+        const PlaySessionInput(
+          gameKey: '13',
+          playedDate: '2026-06-13',
+          expansionGameKeys: ['112', '111'],
+        ),
+      );
+      final second = await repository.recordSession(
+        const PlaySessionInput(
+          gameKey: '13',
+          playedDate: '2026-06-14',
+          expansionGameKeys: ['112'],
+        ),
+      );
+
+      final records = await repository.listAll();
+
+      expect(records.map((record) => record.id), [second, first]);
+      expect(records[0].expansionGameKeys, ['112']);
+      expect(records[1].expansionGameKeys, ['111', '112']);
+    },
+  );
+
   test('deleteSession removes session and expansion links', () async {
     await _insertGame(database, key: '13', title: 'CATAN');
     await _insertGame(

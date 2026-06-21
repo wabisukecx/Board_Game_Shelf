@@ -109,18 +109,23 @@ class PlaySessionRepository {
   Future<List<PlaySessionRecord>> _recordsFromSessions(
     List<PlaySession> sessions,
   ) async {
-    final records = <PlaySessionRecord>[];
-    for (final session in sessions) {
-      final expansions =
-          await (_database.select(_database.playSessionExpansions)
-                ..where(
-                  (expansion) => expansion.playSessionId.equals(session.id),
-                )
-                ..orderBy([
-                  (expansion) => OrderingTerm.asc(expansion.expansionGameKey),
-                ]))
-              .get();
-      records.add(
+    if (sessions.isEmpty) {
+      return const [];
+    }
+    final allExpansions = await _database
+        .select(_database.playSessionExpansions)
+        .get();
+    final expansionsBySessionId = <int, List<String>>{};
+    for (final expansion in allExpansions) {
+      expansionsBySessionId
+          .putIfAbsent(expansion.playSessionId, () => [])
+          .add(expansion.expansionGameKey);
+    }
+    for (final expansions in expansionsBySessionId.values) {
+      expansions.sort();
+    }
+    return [
+      for (final session in sessions)
         PlaySessionRecord(
           id: session.id,
           gameKey: session.gameKey,
@@ -133,13 +138,10 @@ class PlaySessionRepository {
           perceivedWeight: session.perceivedWeight,
           winnerMemo: session.winnerMemo,
           createdAt: session.createdAt,
-          expansionGameKeys: [
-            for (final expansion in expansions) expansion.expansionGameKey,
-          ],
+          expansionGameKeys:
+              expansionsBySessionId[session.id] ?? const <String>[],
         ),
-      );
-    }
-    return records;
+    ];
   }
 
   Future<void> deleteSession(int id) {

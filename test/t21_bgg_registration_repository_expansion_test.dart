@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:bg_shelf_scanner/src/core/constants.dart';
 import 'package:bg_shelf_scanner/src/data/bgg/bgg_api_client.dart';
+import 'package:bg_shelf_scanner/src/data/bgg/bgg_relationship_source.dart';
 import 'package:bg_shelf_scanner/src/data/bgg/bgg_token_provider.dart';
 import 'package:bg_shelf_scanner/src/data/bgg/bgg_xml_parser.dart';
 import 'package:bg_shelf_scanner/src/data/db/app_database.dart';
@@ -12,15 +13,18 @@ import 'package:bg_shelf_scanner/src/domain/game_names.dart';
 void main() {
   late AppDatabase database;
   late _FakeBggApi api;
+  late _FakeRelationshipSource relationshipSource;
   late BggRegistrationRepository repository;
 
   setUp(() {
     database = AppDatabase(NativeDatabase.memory());
     api = _FakeBggApi();
+    relationshipSource = _FakeRelationshipSource();
     repository = BggRegistrationRepository(
       database: database,
       api: api,
       parser: const BggXmlParser(),
+      relationshipSource: relationshipSource,
       tokenProvider: const _FixedTokenProvider('token'),
     );
   });
@@ -48,31 +52,80 @@ void main() {
     },
   );
 
+  test('fetches only unregistered expansion candidates on demand', () async {
+    await database.upsertBggGame(
+      bggId: '222',
+      names: const GameNames(primary: 'Already Registered Expansion'),
+    );
+    api.thingXml = _thingXml(id: '13', title: 'CATAN');
+    relationshipSource.candidates = const [
+      NamedBggValue(name: 'Seafarers', bggId: '111'),
+      NamedBggValue(name: 'Already Registered Expansion', bggId: '222'),
+    ];
+
+    final result = await repository.registerBggId('13');
+    final candidates = await repository.fetchExpansionCandidates('13');
+
+    expect(result.game.gameKind, AppConstants.gameKindBase);
+    expect(result.game.parentGameKey, isNull);
+    expect(candidates, hasLength(1));
+    expect(candidates.single.bggId, '111');
+    expect(relationshipSource.calls, 1);
+  });
+
   test(
-    'registers base game and exposes only unregistered expansion candidates',
+    'uses the explicit relationship source instead of XML link direction',
     () async {
-      await database.upsertBggGame(
-        bggId: '222',
-        names: const GameNames(primary: 'Already Registered Expansion'),
-      );
-      api.thingXml = _thingXml(
-        id: '13',
-        title: 'CATAN',
-        expansions: const {
-          '111': 'Seafarers',
-          '222': 'Already Registered Expansion',
-        },
+      api.thingXml = '''
+<items>
+  <item type="boardgameexpansion" id="355958">
+    <name type="primary" value="Dominion: Seaside (Second Edition)" />
+    <link type="boardgameexpansion" id="36218" value="Dominion" inbound="true" />
+  </item>
+</items>
+''';
+      relationshipSource.candidates = const [
+        NamedBggValue(name: 'Dominion', bggId: '36218'),
+        NamedBggValue(name: 'Dominion: Second Edition', bggId: '209418'),
+      ];
+      api.responses['36218'] = _thingXml(id: '36218', title: 'Dominion');
+      api.responses['209418'] = _thingXml(
+        id: '209418',
+        title: 'Dominion: Second Edition',
       );
 
-      final result = await repository.registerBggId('13');
+      final result = await repository.registerBggId('355958');
 
-      expect(result.game.gameKind, AppConstants.gameKindBase);
-      expect(result.game.parentGameKey, isNull);
       final created = result as BggRegistrationCreated;
-      expect(created.expansionCandidates, hasLength(1));
-      expect(created.expansionCandidates.single.bggId, '111');
+      expect(created.game.parentGameKey, isNull);
+      expect(created.parentCandidates.map((candidate) => candidate.bggId), [
+        '36218',
+        '209418',
+      ]);
+      final candidates = await repository.fetchExpansionCandidates('355958');
+      expect(candidates.map((candidate) => candidate.bggId), [
+        '36218',
+        '209418',
+      ]);
     },
   );
+
+  test('automatically selects the only confirmed parent candidate', () async {
+    api.thingXml = _thingXml(
+      id: '111',
+      title: 'Expansion',
+      itemType: AppConstants.bggExpansionLinkType,
+    );
+    relationshipSource.candidates = const [
+      NamedBggValue(name: 'Base game', bggId: '13'),
+    ];
+    api.responses['13'] = _thingXml(id: '13', title: 'Base game');
+
+    final result = await repository.registerBggId('111');
+
+    expect(result.game.parentGameKey, '13');
+    expect((result as BggRegistrationCreated).parentCandidates, isEmpty);
+  });
 
   test(
     'already existing registration does not fetch thing or expose candidates',
@@ -86,10 +139,42 @@ void main() {
 
       expect(result, isA<BggRegistrationAlreadyExists>());
       expect(api.fetchThingCalls, 0);
-      expect(
-        (result as BggRegistrationAlreadyExists).expansionCandidates,
-        isEmpty,
+    },
+  );
+
+  test(
+    'filters self duplicate empty and already registered candidates',
+    () async {
+      await database.upsertBggGame(
+        bggId: '222',
+        names: const GameNames(primary: 'Already registered'),
       );
+      relationshipSource.candidates = const [
+        NamedBggValue(name: 'Self', bggId: '13'),
+        NamedBggValue(name: 'Candidate', bggId: '111'),
+        NamedBggValue(name: 'Duplicate', bggId: '111'),
+        NamedBggValue(name: 'Registered', bggId: '222'),
+        NamedBggValue(name: 'Empty', bggId: ''),
+        NamedBggValue(name: 'Missing ID'),
+      ];
+
+      final candidates = await repository.fetchExpansionCandidates('13');
+
+      expect(candidates.map((candidate) => candidate.bggId), ['111']);
+    },
+  );
+
+  test(
+    'base game registration does not fetch relationship candidates',
+    () async {
+      api.thingXml = _thingXml(id: '13', title: 'CATAN');
+      relationshipSource.candidates = const [
+        NamedBggValue(name: 'Seafarers', bggId: '111'),
+      ];
+
+      await repository.registerBggId('13');
+
+      expect(relationshipSource.calls, 0);
     },
   );
 
@@ -203,6 +288,21 @@ class _FakeBggApi implements BggApi {
   @override
   Future<String> searchGames({required String query, bool exact = false}) {
     throw UnimplementedError();
+  }
+}
+
+class _FakeRelationshipSource implements BggRelationshipSource {
+  List<NamedBggValue>? candidates;
+  int calls = 0;
+
+  @override
+  Future<List<NamedBggValue>> registrationCandidates(String bggId) async {
+    calls += 1;
+    final result = candidates;
+    if (result == null) {
+      throw const FormatException('unavailable');
+    }
+    return result;
   }
 }
 

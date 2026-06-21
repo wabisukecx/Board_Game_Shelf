@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../app/providers.dart';
+import '../../core/constants.dart';
 import '../../data/backup/backup_service.dart';
 import '../../i18n/language_preference_repository.dart';
 import '../../i18n/locale_option.dart';
@@ -25,6 +26,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _bggUsernameSet = false;
   bool _geminiSet = false;
   bool _loading = true;
+  bool _refreshingGameUpcCache = false;
 
   @override
   void initState() {
@@ -125,6 +127,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _snack(t.t('settings.backupDone', {'path': created.path}));
     } catch (_) {
       _snack(t.t('settings.backupFailed'));
+    }
+  }
+
+  Future<void> _refreshGameUpcCache() async {
+    final t = ref.read(i18nProvider);
+    setState(() => _refreshingGameUpcCache = true);
+    try {
+      await ref.read(gameUpcCacheRepositoryProvider).refreshFromRemote();
+      ref.invalidate(gameUpcCacheStatusProvider);
+      _snack(t.t('settings.gameUpcCacheUpdateSucceeded'));
+    } catch (_) {
+      _snack(t.t('settings.gameUpcCacheUpdateFailed'));
+    } finally {
+      if (mounted) {
+        setState(() => _refreshingGameUpcCache = false);
+      }
     }
   }
 
@@ -283,6 +301,50 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ),
                 const Divider(height: 32),
                 Text(
+                  t.t('settings.gameUpcCacheTitle'),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                ref
+                    .watch(gameUpcCacheStatusProvider)
+                    .when(
+                      data: (status) {
+                        if (status.count == 0 || status.importedAt == null) {
+                          return Text(t.t('settings.gameUpcCacheNotImported'));
+                        }
+                        final sourceLabel =
+                            status.source ==
+                                AppConstants.gameUpcCacheSourceRemote
+                            ? t.t('settings.gameUpcCacheSourceRemote')
+                            : t.t('settings.gameUpcCacheSourceBundled');
+                        return Text(
+                          t.t('settings.gameUpcCacheStatus', {
+                            'count': status.count,
+                            'sourceLabel': sourceLabel,
+                            'date': _formatDateTime(status.importedAt!),
+                          }),
+                        );
+                      },
+                      loading: () => const LinearProgressIndicator(),
+                      error: (_, __) =>
+                          Text(t.t('settings.gameUpcCacheNotImported')),
+                    ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: _refreshingGameUpcCache
+                      ? null
+                      : _refreshGameUpcCache,
+                  icon: _refreshingGameUpcCache
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.download),
+                  label: Text(t.t('settings.gameUpcCacheUpdateButton')),
+                ),
+                const Divider(height: 32),
+                Text(
                   t.t('settings.backup'),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
@@ -295,6 +357,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ],
             ),
     );
+  }
+
+  String _formatDateTime(DateTime value) {
+    String two(int part) => part.toString().padLeft(2, '0');
+    return '${value.year}-${two(value.month)}-${two(value.day)} '
+        '${two(value.hour)}:${two(value.minute)}';
   }
 }
 

@@ -9,6 +9,7 @@ import '../../core/constants.dart';
 import '../../data/gameupc/game_upc_client.dart';
 import '../../data/repo/bgg_registration_repository.dart';
 import '../../data/repo/barcode_map_repository.dart';
+import '../../data/repo/game_upc_cache_repository.dart';
 import 'game_detail_page.dart';
 import 'local_game_form_page.dart';
 import 'search_registration_page.dart';
@@ -105,6 +106,38 @@ class _ScanPageState extends ConsumerState<ScanPage> {
           ),
         );
       case BarcodeResolutionStatus.miss:
+        setState(() {
+          _resolving = true;
+          _message = t.t('scan.cacheResolving', {'jan': resolution.jan});
+        });
+        GameUpcCacheLookupResult? cacheHit;
+        try {
+          cacheHit = await ref
+              .read(gameUpcCacheRepositoryProvider)
+              .lookup(resolution.jan);
+        } catch (_) {
+          // A bundled-data or database failure must not block the existing
+          // online GameUPC and manual-registration fallbacks.
+        }
+        if (!mounted) {
+          return;
+        }
+        setState(() => _resolving = false);
+        if (cacheHit != null) {
+          final registered = await _registerGameUpcCandidate(
+            GameUpcCandidate(
+              bggId: cacheHit.bggId,
+              name: cacheHit.name,
+              confidence: 100,
+            ),
+            jan: resolution.jan,
+            source: source,
+            vote: false,
+          );
+          if (registered) {
+            return;
+          }
+        }
         final handled = await _tryGameUpc(jan: resolution.jan, source: source);
         if (handled) {
           return;
@@ -156,7 +189,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     }
   }
 
-  Future<void> _registerGameUpcCandidate(
+  Future<bool> _registerGameUpcCandidate(
     GameUpcCandidate candidate, {
     required String jan,
     required String source,
@@ -177,7 +210,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
           .read(barcodeMapRepositoryProvider)
           .learn(rawJan: jan, gameKey: result.game.gameKey, source: source);
       if (!mounted) {
-        return;
+        return true;
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -191,18 +224,21 @@ class _ScanPageState extends ConsumerState<ScanPage> {
           builder: (_) => GameDetailPage(gameKey: result.game.gameKey),
         ),
       );
+      return true;
     } on InvalidBggGameException {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(t.t('search.invalidGame'))));
       }
+      return false;
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(t.t('search.errorGeneric'))));
       }
+      return false;
     }
   }
 

@@ -621,25 +621,24 @@ class _CollectionList extends ConsumerWidget {
                   : () => onToggleExpanded(group.parent),
               isOrphanExpansion: group.isOrphanExpansion,
             ),
-            AnimatedCrossFade(
+            AnimatedSize(
               duration: const Duration(milliseconds: 180),
-              crossFadeState: isExpanded
-                  ? CrossFadeState.showSecond
-                  : CrossFadeState.showFirst,
-              firstChild: const SizedBox.shrink(),
-              secondChild: Column(
-                children: [
-                  for (final expansion in group.expansions)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 32),
-                      child: _CollectionListTile(
-                        item: expansion,
-                        onTap: onTap,
-                        showExpansionBadge: true,
-                      ),
-                    ),
-                ],
-              ),
+              child: isExpanded
+                  ? Column(
+                      key: const ValueKey('expanded'),
+                      children: [
+                        for (final expansion in group.expansions)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 32),
+                            child: _CollectionListTile(
+                              item: expansion,
+                              onTap: onTap,
+                              showExpansionBadge: true,
+                            ),
+                          ),
+                      ],
+                    )
+                  : const SizedBox.shrink(key: ValueKey('collapsed')),
             ),
           ],
         );
@@ -712,6 +711,8 @@ class _CollectionListTile extends StatelessWidget {
 }
 
 class _CollectionGrid extends ConsumerWidget {
+  static const double _gridMaxCrossAxisExtent = 180;
+
   const _CollectionGrid({
     required this.items,
     required this.expandedGameKeys,
@@ -743,7 +744,7 @@ class _CollectionGrid extends ConsumerWidget {
     return GridView.builder(
       padding: const EdgeInsets.all(12),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 180,
+        maxCrossAxisExtent: _gridMaxCrossAxisExtent,
         childAspectRatio: 0.72,
         mainAxisSpacing: 12,
         crossAxisSpacing: 12,
@@ -761,7 +762,11 @@ class _CollectionGrid extends ConsumerWidget {
                 child: Stack(
                   children: [
                     Positioned.fill(
-                      child: _Thumbnail(url: item.game.thumbnailUrl, size: 120),
+                      child: _Thumbnail(
+                        url: item.game.thumbnailUrl,
+                        size: 120,
+                        cacheSize: _gridMaxCrossAxisExtent,
+                      ),
                     ),
                     if (item.isLocal)
                       const Positioned(
@@ -891,10 +896,11 @@ class _Subtitle extends ConsumerWidget {
 }
 
 class _Thumbnail extends StatelessWidget {
-  const _Thumbnail({required this.url, this.size = 44});
+  const _Thumbnail({required this.url, this.size = 44, this.cacheSize});
 
   final String? url;
   final double size;
+  final double? cacheSize;
 
   @override
   Widget build(BuildContext context) {
@@ -908,11 +914,15 @@ class _Thumbnail extends StatelessWidget {
     if (source == null || source.isEmpty) {
       return placeholder;
     }
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final targetPx = ((cacheSize ?? size) * dpr).round();
     return Image.network(
       source,
       width: size,
       height: size,
       fit: BoxFit.cover,
+      cacheWidth: targetPx,
+      cacheHeight: targetPx,
       errorBuilder: (_, __, ___) => placeholder,
     );
   }

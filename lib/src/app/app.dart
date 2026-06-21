@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'providers.dart';
@@ -16,6 +17,13 @@ class BgShelfScannerApp extends ConsumerWidget {
       title: 'Board Game Shelf',
       debugShowCheckedModeBanner: false,
       locale: localeCode == null ? null : Locale(localeCode),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      // Keep this list aligned with the locale bundles in assets/i18n/.
+      supportedLocales: const [Locale('ja'), Locale('en')],
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1F7A8C)),
         useMaterial3: true,

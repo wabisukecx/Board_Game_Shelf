@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:bg_shelf_scanner/src/core/constants.dart';
 import 'package:bg_shelf_scanner/src/data/bgg/bgg_api_client.dart';
+import 'package:bg_shelf_scanner/src/data/bgg/bgg_relationship_source.dart';
 import 'package:bg_shelf_scanner/src/data/bgg/bgg_token_provider.dart';
 import 'package:bg_shelf_scanner/src/data/bgg/bgg_xml_parser.dart';
 import 'package:bg_shelf_scanner/src/data/db/app_database.dart';
@@ -24,6 +25,7 @@ void main() {
         database: database,
         api: api,
         parser: const BggXmlParser(),
+        relationshipSource: const _UnavailableRelationshipSource(),
         tokenProvider: const FixedTokenProvider('token'),
       ),
     );
@@ -114,6 +116,15 @@ void main() {
       expect(api.fetchThingIds, ['1', '2', '3', '4', '5']);
     },
   );
+}
+
+class _UnavailableRelationshipSource implements BggRelationshipSource {
+  const _UnavailableRelationshipSource();
+
+  @override
+  Future<List<NamedBggValue>> registrationCandidates(String bggId) {
+    throw const FormatException('unavailable');
+  }
 }
 
 String _thingXml({required String id, required String title}) {

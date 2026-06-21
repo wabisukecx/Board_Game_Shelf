@@ -98,4 +98,17 @@ void main() {
     expect(game?.names.japanese, '日本語名');
     expect(game?.names.alternates, ['A', 'B']);
   });
+
+  test('updates the parent game key without changing the schema', () async {
+    await database.upsertBggGame(
+      bggId: '111',
+      names: const GameNames(primary: 'Expansion'),
+    );
+
+    await database.updateParentGameKey('111', '13');
+    expect((await database.findGame('111'))?.parentGameKey, '13');
+
+    await database.updateParentGameKey('111', null);
+    expect((await database.findGame('111'))?.parentGameKey, isNull);
+  });
 }

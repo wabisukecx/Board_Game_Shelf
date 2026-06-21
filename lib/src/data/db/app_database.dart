@@ -193,6 +193,20 @@ class SettingsEntries extends Table {
   Set<Column<Object>> get primaryKey => {key};
 }
 
+@TableIndex(name: 'gameupc_cache_barcode_idx', columns: {#barcode})
+class GameUpcCacheEntries extends Table {
+  @override
+  String get tableName => 'gameupc_cache';
+
+  TextColumn get barcode => text()();
+  TextColumn get bggId => text()();
+  TextColumn get versionId => text().nullable()();
+  TextColumn get name => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {barcode};
+}
+
 @TableIndex(name: 'play_sessions_game_key_idx', columns: {#gameKey})
 class PlaySessions extends Table {
   @override
@@ -229,6 +243,7 @@ class PlaySessionExpansions extends Table {
     BarcodeMapEntries,
     ApiCacheEntries,
     SettingsEntries,
+    GameUpcCacheEntries,
     PlaySessions,
     PlaySessionExpansions,
   ],
@@ -237,7 +252,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -274,6 +289,9 @@ class AppDatabase extends _$AppDatabase {
       if (from < 7) {
         await m.createTable(playSessions);
         await m.createTable(playSessionExpansions);
+      }
+      if (from < 8) {
+        await m.createTable(gameUpcCacheEntries);
       }
     },
   );
@@ -422,6 +440,12 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  Future<void> updateParentGameKey(String gameKey, String? parentGameKey) {
+    return (update(games)..where((game) => game.gameKey.equals(gameKey))).write(
+      GamesCompanion(parentGameKey: Value(parentGameKey)),
+    );
+  }
+
   Future<CollectionEntry?> findCollection(String gameKey) {
     return (select(
       collectionEntries,
@@ -432,6 +456,27 @@ class AppDatabase extends _$AppDatabase {
     return (select(
       barcodeMapEntries,
     )..where((entry) => entry.janCode.equals(janCode))).getSingleOrNull();
+  }
+
+  Future<GameUpcCacheEntry?> findGameUpcCache(String barcode) {
+    return (select(
+      gameUpcCacheEntries,
+    )..where((entry) => entry.barcode.equals(barcode))).getSingleOrNull();
+  }
+
+  Future<int> countGameUpcCacheEntries() async {
+    final countExpression = gameUpcCacheEntries.barcode.count();
+    final query = selectOnly(gameUpcCacheEntries)
+      ..addColumns([countExpression]);
+    final row = await query.getSingle();
+    return row.read(countExpression) ?? 0;
+  }
+
+  Future<String?> readSetting(String key) async {
+    final entry = await (select(
+      settingsEntries,
+    )..where((entry) => entry.key.equals(key))).getSingleOrNull();
+    return entry?.value;
   }
 
   Future<void> upsertBarcode({

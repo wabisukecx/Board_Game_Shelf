@@ -24,6 +24,17 @@ class CollectionRepository {
     String fallbackDisplayName = 'Unknown title',
   }) async {
     final games = await _database.select(_database.games).get();
+    final collectionRows = await _database
+        .select(_database.collectionEntries)
+        .get();
+    final collectionByKey = {
+      for (final collection in collectionRows) collection.gameKey: collection,
+    };
+    final allSessions = await _playSessions.listAll();
+    final sessionsByGameKey = <String, List<PlaySessionRecord>>{};
+    for (final session in allSessions) {
+      sessionsByGameKey.putIfAbsent(session.gameKey, () => []).add(session);
+    }
     final parentKeysWithExpansions = {
       for (final game in games)
         if (game.gameKind == AppConstants.gameKindExpansion &&
@@ -33,13 +44,13 @@ class CollectionRepository {
     final items = <CollectionListItem>[];
 
     for (final game in games) {
-      final collection = await _database.findCollection(game.gameKey);
+      final collection = collectionByKey[game.gameKey];
       if (collection == null) {
         continue;
       }
       final sessionRecords = game.gameKind == AppConstants.gameKindExpansion
           ? const <PlaySessionRecord>[]
-          : await _playSessions.listForGame(game.gameKey);
+          : (sessionsByGameKey[game.gameKey] ?? const <PlaySessionRecord>[]);
       final item = CollectionListItem(
         game: game,
         collection: collection,
@@ -81,10 +92,16 @@ class CollectionRepository {
 
   Future<CollectionFacets> facets() async {
     final games = await _database.select(_database.games).get();
+    final collectionRows = await _database
+        .select(_database.collectionEntries)
+        .get();
+    final collectionByKey = {
+      for (final collection in collectionRows) collection.gameKey: collection,
+    };
     final mechanics = <String>{};
     final designers = <String>{};
     for (final game in games) {
-      final collection = await _database.findCollection(game.gameKey);
+      final collection = collectionByKey[game.gameKey];
       if (collection == null) {
         continue;
       }

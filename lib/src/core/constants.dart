@@ -45,6 +45,13 @@ class AppConstants {
   static const String barcodeSourceScan = 'scan';
   static const String barcodeSourceManual = 'manual';
   static const String gameUpcBaseUrl = 'https://api.gameupc.com/test';
+  static const String gameUpcCsvDumpUrl =
+      'https://gameupc.com/dumps/latest/gameupc.csv';
+  static const String gameUpcCacheImportedAtKey = 'gameupc_cache_imported_at';
+  static const String gameUpcCacheSourceKey = 'gameupc_cache_source';
+  static const String gameUpcCacheSourceBundled = 'bundled';
+  static const String gameUpcCacheSourceRemote = 'remote';
+  static const String gameUpcSeedAsset = 'assets/gameupc/gameupc_seed.csv';
   static const String gameUpcVerifiedStatus = 'verified';
 
   static const String geminiVisionModel = 'gemini-3.5-flash';

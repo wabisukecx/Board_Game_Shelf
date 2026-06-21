@@ -9,9 +9,10 @@ import '../../data/repo/collection_repository.dart';
 import '../../data/repo/information_update_repository.dart';
 import '../../data/repo/play_session_repository.dart';
 import '../../domain/display_names.dart';
-import '../../data/translation/gemini_translation_service.dart';
 import '../../i18n/i18n.dart';
 import '../export_writer.dart';
+import '../widgets/expansion_candidate_dialog.dart';
+import '../widgets/parent_game_candidate_dialog.dart';
 import 'play_session_form_page.dart';
 
 class GameDetailPage extends ConsumerStatefulWidget {
@@ -161,32 +162,6 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
     );
   }
 
-  Future<void> _translate() async {
-    final t = ref.read(i18nProvider);
-    setState(() => _busy = true);
-    try {
-      final result = await ref
-          .read(descriptionTranslationRepositoryProvider)
-          .translateIfNeeded(widget.gameKey);
-      await _reload();
-      _snack(switch (result.status) {
-        DescriptionTranslationStatus.translated => t.t('detail.translated'),
-        DescriptionTranslationStatus.skippedJapaneseText => t.t(
-          'detail.translateSkipped',
-        ),
-        DescriptionTranslationStatus.missingApiKey => t.t(
-          'detail.translateMissingKey',
-        ),
-        DescriptionTranslationStatus.failed => t.t('detail.translateFailed'),
-        DescriptionTranslationStatus.noSource => t.t(
-          'detail.translateNoSource',
-        ),
-      });
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
   Future<void> _exportOne() async {
     final t = ref.read(i18nProvider);
     setState(() => _busy = true);
@@ -253,6 +228,64 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
           builder: (_) => GameDetailPage(gameKey: result.game.gameKey),
         ),
       );
+    } catch (_) {
+      _snack(t.t('search.errorGeneric'));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _chooseParent() async {
+    final game = _game;
+    final bggId = game?.bggId;
+    if (game == null || bggId == null) {
+      return;
+    }
+    final t = ref.read(i18nProvider);
+    setState(() => _busy = true);
+    try {
+      final repository = ref.read(bggRegistrationRepositoryProvider);
+      final candidates = await repository.fetchParentCandidates(bggId);
+      if (!mounted) return;
+      final selected = await showParentGameCandidateDialog(
+        context: context,
+        t: t,
+        candidates: candidates,
+      );
+      final parentId = selected?.bggId;
+      if (parentId == null || parentId.isEmpty) {
+        return;
+      }
+      await repository.setParentGameKey(game.gameKey, parentId);
+      await _reload();
+      _snack(t.t('expansion.parentUpdated'));
+    } catch (_) {
+      _snack(t.t('search.errorGeneric'));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _checkExpansionCandidates() async {
+    final bggId = _game?.bggId;
+    if (bggId == null) {
+      return;
+    }
+    final t = ref.read(i18nProvider);
+    setState(() => _busy = true);
+    try {
+      final repository = ref.read(bggRegistrationRepositoryProvider);
+      final candidates = await repository.fetchExpansionCandidates(bggId);
+      if (!mounted) return;
+      await showExpansionCandidateDialog(
+        context: context,
+        t: t,
+        candidates: candidates,
+        onRegister: (candidateId) async {
+          await repository.registerBggId(candidateId);
+        },
+      );
+      await _reload();
     } catch (_) {
       _snack(t.t('search.errorGeneric'));
     } finally {
@@ -382,25 +415,10 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
             ),
           ),
           onRegisterParent: _registerParent,
+          onChooseParent: _chooseParent,
         ),
         _PlaySessionSection(game: game),
         _AnalysisSection(game: game),
-        if (game.description != null && game.description!.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Text(
-            t.t('detail.description'),
-            style: Theme.of(context).textTheme.labelLarge,
-          ),
-          Text(game.description!),
-        ],
-        if (game.descriptionJa != null && game.descriptionJa!.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Text(
-            t.t('detail.descriptionJa'),
-            style: Theme.of(context).textTheme.labelLarge,
-          ),
-          Text(game.descriptionJa!),
-        ],
         if (game.updateHistory.entries.isNotEmpty) ...[
           const SizedBox(height: 8),
           _section(context, t.t('detail.updateHistory')),
@@ -420,13 +438,11 @@ class _GameDetailPageState extends ConsumerState<GameDetailPage> {
                 icon: const Icon(Icons.refresh),
                 label: Text(t.t('detail.infoUpdate')),
               ),
-            if (isBgg &&
-                game.description != null &&
-                game.description!.isNotEmpty)
+            if (isBgg)
               OutlinedButton.icon(
-                onPressed: _busy ? null : _translate,
-                icon: const Icon(Icons.translate),
-                label: Text(t.t('detail.translate')),
+                onPressed: _busy ? null : _checkExpansionCandidates,
+                icon: const Icon(Icons.playlist_add),
+                label: Text(t.t('expansion.checkCandidates')),
               ),
           ],
         ),
@@ -556,31 +572,29 @@ class _AnalysisSection extends ConsumerWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    Chip(
-                      label: Text(
-                        t.t(
-                          'learning_curve.types.${analysis.learningCurveType}',
-                        ),
-                      ),
+                Text(
+                  t.t('analysis.narrativeLearningCurve', {
+                    'type': t.t(
+                      'learning_curve.types.${analysis.learningCurveType}',
                     ),
-                    Chip(
-                      label: Text(t.t('mastery_time.${analysis.masteryTime}')),
+                  }),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  t.t('analysis.narrativeMasteryTime', {
+                    'masteryTime': t.t('mastery_time.${analysis.masteryTime}'),
+                  }),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  t.t('analysis.narrativeDepthReplay', {
+                    'depth': t.t(
+                      'analysis.depth.${analysis.strategicDepthLabel}',
                     ),
-                    Chip(
-                      label: Text(
-                        t.t('analysis.depth.${analysis.strategicDepthLabel}'),
-                      ),
+                    'replay': t.t(
+                      'replayability.${analysis.replayabilityLabel}',
                     ),
-                    Chip(
-                      label: Text(
-                        t.t('replayability.${analysis.replayabilityLabel}'),
-                      ),
-                    ),
-                  ],
+                  }),
                 ),
                 const SizedBox(height: 8),
                 _MetricBar(
@@ -867,12 +881,14 @@ class _ExpansionInfoSection extends ConsumerWidget {
     required this.busy,
     required this.onOpenGame,
     required this.onRegisterParent,
+    required this.onChooseParent,
   });
 
   final Game game;
   final bool busy;
   final ValueChanged<String> onOpenGame;
   final ValueChanged<String> onRegisterParent;
+  final VoidCallback onChooseParent;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -883,7 +899,29 @@ class _ExpansionInfoSection extends ConsumerWidget {
     if (game.gameKind == AppConstants.gameKindExpansion) {
       final parentKey = game.parentGameKey;
       if (parentKey == null || parentKey.isEmpty) {
-        return const SizedBox.shrink();
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t.t('expansion.title'),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                Text(t.t('expansion.parentUndetermined')),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: busy ? null : onChooseParent,
+                  icon: const Icon(Icons.swap_horiz),
+                  label: Text(t.t('expansion.changeParent')),
+                ),
+              ],
+            ),
+          ),
+        );
       }
       return FutureBuilder<Game?>(
         future: database.findGame(parentKey),
@@ -927,6 +965,12 @@ class _ExpansionInfoSection extends ConsumerWidget {
                       icon: const Icon(Icons.open_in_new),
                       label: Text(t.t('expansion.openParent')),
                     ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: busy ? null : onChooseParent,
+                    icon: const Icon(Icons.swap_horiz),
+                    label: Text(t.t('expansion.changeParent')),
+                  ),
                 ],
               ),
             ),

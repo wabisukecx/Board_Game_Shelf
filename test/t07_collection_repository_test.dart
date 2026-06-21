@@ -477,6 +477,35 @@ void main() {
 
     expect(items, hasLength(1000));
   });
+
+  test(
+    'excludes games without collection entries from list and facets',
+    () async {
+      await _insertBgg(
+        database,
+        bggId: '20001',
+        primary: 'Collected Game',
+        mechanics: const ['Collected Mechanic'],
+        designers: const ['Collected Designer'],
+      );
+      await database.upsertBggGame(
+        bggId: '20002',
+        names: const GameNames(
+          primary: 'Uncollected Game',
+          english: 'Uncollected Game',
+        ),
+        mechanics: const ['Uncollected Mechanic'],
+        designers: const ['Uncollected Designer'],
+      );
+
+      final items = await repository.list();
+      final facets = await repository.facets();
+
+      expect(items.map((item) => item.game.gameKey), ['20001']);
+      expect(facets.mechanics, ['Collected Mechanic']);
+      expect(facets.designers, ['Collected Designer']);
+    },
+  );
 }
 
 Future<void> _insertBgg(

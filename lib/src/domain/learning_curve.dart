@@ -118,15 +118,13 @@ class LearningCurveAnalyzer {
       game.mechanics.where(hiddenInfoMechanics.contains).length * 0.1,
     );
     final strategicDepth =
-        (weight * 0.20 +
-            decisionPoints * 0.35 +
-            rulesComplexity * 0.10 +
-            interactionComplexity * 0.25 +
-            weight * 0.10 +
-            math.min(0.4, strategyBonus) +
-            math.min(0.1, playtime.strategicBonus * 0.6) +
-            hiddenInfoBonus) *
-        (1.0 + (playtime.complexityFactor - 1.0) * 0.95);
+        weight * 0.30 +
+        decisionPoints * 0.35 +
+        rulesComplexity * 0.10 +
+        interactionComplexity * 0.25 +
+        math.min(0.4, strategyBonus) +
+        math.min(0.1, playtime.strategicBonus * 0.6) +
+        hiddenInfoBonus;
     return _StrategicDepth(
       strategicDepth: roundScore(clampScore(strategicDepth)),
       decisionPoints: decisionPoints,
@@ -271,7 +269,7 @@ class LearningCurveAnalyzer {
     };
     final replayability =
         (2.0 + diversityScore + rankBonus) *
-            _longevityFactor(_yearPublished(game)) +
+            _longevityFactor(_yearPublished(game), isRanked: rank != null) +
         playtimeReplayBonus;
     return roundScore(clampScore(replayability));
   }
@@ -419,8 +417,8 @@ class LearningCurveAnalyzer {
     return clampScore(3.0 + luckCount * 0.5 - strategyCount * 0.4);
   }
 
-  double _longevityFactor(int? yearPublished) {
-    if (yearPublished == null) {
+  double _longevityFactor(int? yearPublished, {required bool isRanked}) {
+    if (yearPublished == null || !isRanked) {
       return 1.0;
     }
     final years = clock.now().year - yearPublished;
@@ -620,9 +618,9 @@ String _masteryTime({
   required int mechanicCount,
 }) {
   if (strategicDepth > 4.3) {
-    return mechanicCount >= 6 ? 'medium_to_long' : 'long';
+    return mechanicCount >= 6 ? 'long' : 'medium_to_long';
   }
-  if (strategicDepth > 3.2) {
+  if (strategicDepth > 3.5) {
     return initialBarrier > 4.0 ? 'medium_to_long' : 'medium';
   }
   return initialBarrier > 4.0 ? 'medium' : 'short';
