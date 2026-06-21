@@ -1,8 +1,12 @@
 import 'dart:io';
 
 import 'package:drift/native.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:bg_shelf_scanner/src/app/providers.dart';
 import 'package:bg_shelf_scanner/src/core/clock.dart';
 import 'package:bg_shelf_scanner/src/data/backup/backup_service.dart';
 import 'package:bg_shelf_scanner/src/data/db/app_database.dart';
@@ -10,6 +14,8 @@ import 'package:bg_shelf_scanner/src/data/export/yaml_exporter.dart';
 import 'package:bg_shelf_scanner/src/data/settings/secret_store.dart';
 import 'package:bg_shelf_scanner/src/data/settings/secure_settings_repository.dart';
 import 'package:bg_shelf_scanner/src/domain/game_names.dart';
+import 'package:bg_shelf_scanner/src/i18n/i18n.dart';
+import 'package:bg_shelf_scanner/src/ui/pages/settings_page.dart';
 
 void main() {
   late AppDatabase database;
@@ -68,6 +74,40 @@ void main() {
       expect(await settings.readBggUsername(), isNull);
     },
   );
+
+  testWidgets('labels the Gemini key as photo and shelf recognition', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final i18n = I18n.fromJsonString('''
+      {
+        "settings": {
+          "title": "設定",
+          "geminiVisionOption": "写真・棚画像の認識"
+        }
+      }
+    ''');
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(database),
+          secureSettingsProvider.overrideWithValue(settings),
+          i18nProvider.overrideWithValue(i18n),
+        ],
+        child: const MaterialApp(home: SettingsPage()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('写真・棚画像の認識'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+
+    expect(find.text('写真・棚画像の認識'), findsOneWidget);
+    expect(find.text('settings.translationOption'), findsNothing);
+  });
 
   test('backup names follow C-18', () {
     final service = BackupService(
