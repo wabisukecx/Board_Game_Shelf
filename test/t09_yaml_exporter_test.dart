@@ -78,12 +78,79 @@ void main() {
     expect(file.filename, '000007_A_B_C_D_E F.yaml');
   });
 
+  test('failed save leaves the batch available for retry', () async {
+    await _insertCatan(database);
+    await database.upsertBggGame(
+      bggId: '7',
+      names: const GameNames(primary: 'Second game'),
+    );
+    final partiallySaved = <YamlExportFile>[];
+    await expectLater(
+      exporter.exportAll(
+        writeFiles: (files) async {
+          partiallySaved.add(files.first);
+          throw StateError('Saving the remaining file failed');
+        },
+      ),
+      throwsStateError,
+    );
+    expect(partiallySaved, hasLength(1));
+    expect(await database.readSetting('export_hash:13'), isNull);
+    expect(await database.readSetting('export_hash:7'), isNull);
+
+    final saved = <YamlExportFile>[];
+    final retry = await exporter.exportAll(
+      writeFiles: (files) async {
+        saved.addAll(files);
+      },
+    );
+    expect(saved, hasLength(2));
+    expect(retry.files, hasLength(2));
+    expect(retry.skippedGameKeys, isEmpty);
+
+    final next = await exporter.exportAll(
+      writeFiles: (_) async {
+        fail('Unchanged files should not be saved again');
+      },
+    );
+    expect(next.files, isEmpty);
+    expect(next.skippedGameKeys, unorderedEquals(['13', '7']));
+  });
+
+  test('failed save of changed content preserves the previous hash', () async {
+    await _insertCatan(database);
+    await exporter.exportAll(writeFiles: (_) async {});
+    final previous = await database.readSetting('export_hash:13');
+    await database.upsertCollection(
+      CollectionEntriesCompanion.insert(
+        gameKey: '13',
+        memo: const Value('Updated memo'),
+      ),
+    );
+    await expectLater(
+      exporter.exportAll(
+        writeFiles: (_) async {
+          throw StateError('Saving failed');
+        },
+      ),
+      throwsStateError,
+    );
+    expect(await database.readSetting('export_hash:13'), previous);
+    final retry = await exporter.exportAll(writeFiles: (_) async {});
+    expect(retry.files.single.content, contains('Updated memo'));
+    expect(retry.skippedGameKeys, isEmpty);
+    expect(await database.readSetting('export_hash:13'), isNot(previous));
+  });
+
   test('batch export skips unchanged records unless forced', () async {
     await _insertCatan(database);
 
-    final first = await exporter.exportAll();
-    final second = await exporter.exportAll();
-    final forced = await exporter.exportAll(force: true);
+    final first = await exporter.exportAll(writeFiles: (_) async {});
+    final second = await exporter.exportAll(writeFiles: (_) async {});
+    final forced = await exporter.exportAll(
+      force: true,
+      writeFiles: (_) async {},
+    );
 
     expect(first.files, hasLength(1));
     expect(first.skippedGameKeys, isEmpty);

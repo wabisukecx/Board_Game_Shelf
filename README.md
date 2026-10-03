@@ -6,6 +6,10 @@ Board Game Shelf is a Flutter app for managing a board game collection. It regis
 
 The app is designed to be useful **without any API keys**, with optional online features unlocked when you provide your own BGG token and/or Gemini API key. See [Feature availability without API keys](#feature-availability-without-api-keys) for exactly what works in each configuration.
 
+## Distribution policy
+
+This is a personal, non-commercial project. It is not published on Google Play, and APKs are not distributed. Run it from source in your own environment.
+
 ## Setup
 
 1. Install Flutter and run `flutter pub get`.
@@ -188,11 +192,13 @@ Manual batch import of an owned BoardGameGeek collection (requires a BGG token).
 
 ## Backup
 
-Database backups use fixed compatible names:
+The settings screen can manually copy the SQLite database.
 
-- Automatic backup: `YYMMDD.sqlite`
-- Manual backup: `backup_YYYYMMDD_HHMMSS.sqlite`
+- Location: `bg_shelf_backups/` within the app documents directory
+- Filename: `backup_YYYYMMDD_HHMMSS.sqlite`
+
+An automatic-backup naming helper (`YYMMDD.sqlite`) exists, but automatic execution is not implemented. There is no in-app restore feature.
 
 ## License
 
-MIT License. See `LICENSE` when a packaged release includes the full license text.
+The intended license is MIT. A `LICENSE` file is not currently included in the repository.

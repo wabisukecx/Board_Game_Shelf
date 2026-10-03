@@ -27,10 +27,15 @@ class _ExportPageState extends ConsumerState<ExportPage> {
       _summary = null;
     });
     try {
+      List<File> written = const [];
       final result = await ref
           .read(yamlExporterProvider)
-          .exportAll(force: _force);
-      final written = await const ExportWriter().write(result.files);
+          .exportAll(
+            force: _force,
+            writeFiles: (files) async {
+              written = await const ExportWriter().write(files);
+            },
+          );
       final directory = await const ExportWriter().exportDirectory();
       if (!mounted) return;
       setState(() {

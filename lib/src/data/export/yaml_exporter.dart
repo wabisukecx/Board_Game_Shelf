@@ -20,10 +20,15 @@ class YamlExporter {
     return _buildFile(game, collection);
   }
 
-  Future<YamlBatchExportResult> exportAll({bool force = false}) async {
+  /// Records hashes only after the complete batch has been saved successfully.
+  Future<YamlBatchExportResult> exportAll({
+    bool force = false,
+    required Future<void> Function(List<YamlExportFile> files) writeFiles,
+  }) async {
     final games = await _database.select(_database.games).get();
     final files = <YamlExportFile>[];
     final skipped = <String>[];
+    final savedHashes = <String, String>{};
 
     for (final game in games) {
       final collection = await _database.findCollection(game.gameKey);
@@ -34,10 +39,18 @@ class YamlExporter {
         skipped.add(game.gameKey);
         continue;
       }
-      await _writeSetting(hashKey, file.md5);
       files.add(file);
+      savedHashes[hashKey] = file.md5;
     }
 
+    if (files.isNotEmpty) {
+      await writeFiles(files);
+      await _database.transaction(() async {
+        for (final entry in savedHashes.entries) {
+          await _writeSetting(entry.key, entry.value);
+        }
+      });
+    }
     return YamlBatchExportResult(files: files, skippedGameKeys: skipped);
   }
 

@@ -2,9 +2,9 @@
 
 | 項目 | 内容 |
 |---|---|
-| 文書バージョン | 1.0（統合版） |
-| 最終更新 | 2026-06-21 |
-| 位置づけ | `docs/archive/DEVELOPMENT_BRIEF_*.md`（Phase 0〜8、および運用改善ブリーフ群）を、開発履歴のサマリーとして1つに統合したもの。各フェーズの冒頭プロンプト・タスク別の詳細な実装指示・受け入れ基準・コードスニペットは `docs/archive/` の元文書を参照 |
+| 文書バージョン | 1.1（実装・運用方針との整合修正） |
+| 最終更新 | 2026-10-03 |
+| 位置づけ | Phase 0〜8と運用改善の開発履歴をまとめ、現在の実装状態を記録した文書。元文書の `docs/archive/` は現在のリポジトリには含まれていない |
 | 対応する要件 | `docs/REQUIREMENTS.md`（統合版要件定義書） |
 | 実装エージェント | Codex（仕様策定・レビューはClaude） |
 
@@ -27,23 +27,23 @@
 
 | 項目 | 指定 |
 |---|---|
-| フレームワーク | Flutter（stable最新）。Android優先、iOSビルドは壊さない |
+| フレームワーク | Flutter。Androidのみをビルド・テスト・保守対象とする |
 | 状態管理 | Riverpod |
 | ローカルDB | drift（SQLite） |
-| HTTP | dio（インターセプタでレート制限・リトライを実装） |
+| HTTP | dio（レート制限・リトライはBggApiClientとBggRateLimiterで実装） |
 | 機密保存 | flutter_secure_storage |
 | 非機密設定 | shared_preferences（言語設定等） |
 | XML解析 | package:xml |
 | CSV解析 | package:csv（GameUPCオフラインキャッシュ取り込み用） |
 | YAML | package:yaml（分析重み付けデータ読み込み・エクスポート） |
-| テスト | flutter_test + mocktail。Clock/Random/Transportは注入可能にする |
+| テスト | flutter_test。Clock/Jitter/Transport等を注入し、手書きのテストダブルを使用する |
 
 ```
-lib/
-  core/        … 定数(constants.dart)、Result型、Clock/Random抽象、barcode.dart（JAN正規化）
+lib/src/
+  core/        … 定数(constants.dart)、Clock/Sleeper/Jitter抽象、barcode.dart（JAN正規化）
   data/
     db/        … drift スキーマ・DAO（app_database.dart）
-    bgg/       … BggApiClient, RateLimiter, RetryPolicy, BggXmlParser, BggTransport
+    bgg/       … BggApiClient（リトライ方針を含む）, BggRateLimiter, BggXmlParser, BggTransport
     gameupc/   … GameUpcClient（ライブAPI）, GameUpcCsvTransport（CSVダウンロード）
     vision/    … GeminiVisionClient（箱写真・棚写真の画像認識）
     repo/      … 各種Repository（collection / barcode_map / bgg_registration /
@@ -61,7 +61,7 @@ assets/
   i18n/        … ja.json, en.json（_meta付き。フォルダ指定でAssetManifestから動的列挙）
   analysis/    … mechanics_data.yaml, categories_data.yaml, rank_complexity.yaml
   gameupc/     … gameupc_seed.csv（GameUPCオフラインキャッシュの同梱シード）
-docs/          … REQUIREMENTS.md, DEVELOPMENT_BRIEF.md（本書）, archive/（フェーズ別原本）
+docs/          … REQUIREMENTS.md, DEVELOPMENT_BRIEF.md（本書）。archive/は同梱されていない
 test/          … タスク単位のテスト（t01〜t34、命名は実装順の連番）
 ```
 
@@ -69,7 +69,7 @@ test/          … タスク単位のテスト（t01〜t34、命名は実装順�
 
 ## 3. 定数表の要点
 
-全定数は `lib/src/core/constants.dart` の `AppConstants` に一元管理されている。フェーズごとに採番した代表的なものを抜粋する（フルの対応表は `docs/archive/` 各ブリーフの §3 を参照）。
+全定数は `lib/src/core/constants.dart` の `AppConstants` に一元管理されている。フェーズごとに採番した代表的なものを抜粋する（現在の値は `constants.dart` を参照。元の `docs/archive/` は同梱されていない）。
 
 | ID範囲 | 概要 |
 |---|---|
@@ -83,7 +83,7 @@ test/          … タスク単位のテスト（t01〜t34、命名は実装順�
 | C-43〜C-45 | ゲーム種別（base/expansion）、BGG拡張リンク種別、DBスキーマバージョン(6) |
 | C-46〜C-51 | プレイ記録の評価系スケール（評価1-10・また遊びたい度1-5・重さの体感1.0-5.0刻み0.5）、DBスキーマバージョン(7)、お気に入り評価しきい値(7) |
 
-> 2026-06の運用改善（§5後半）で、GameUPCオフラインキャッシュ関連の定数・GitHub配布向けの設定が追加されている。最新の正本は常に `constants.dart`。
+> 運用改善（§6）でGameUPCオフラインキャッシュ関連の定数が追加されている。現在のDBスキーマは8。最新の正本は `constants.dart` と `app_database.dart`。
 
 ---
 
@@ -92,11 +92,12 @@ test/          … タスク単位のテスト（t01〜t34、命名は実装順�
 | schemaVersion | 変更内容 |
 |---|---|
 | 1〜4 | Phase 0〜4。`games` / `collection` / `barcode_map` / `api_cache` / `settings` の基本構成 |
+| 5 | 説明文・日本語説明文・対象年齢・デザイナー・出版社などのカラムを追加 |
 | 6 | Phase 5。`games` に `gameKind`（'base'/'expansion'）・`parentGameKey` を追加（拡張管理） |
 | 7 | Phase 6-A。`play_sessions` / `play_session_expansions` を新規追加（プレイ記録） |
 | 8 | 運用改善（GameUPCオフラインキャッシュ化）。`gameupc_cache` テーブルを新規追加 |
 
-(schemaVersion 5は社内検証用に欠番。詳細はマイグレーションテスト `t24`/`t27`/`t34` を参照)
+schemaVersion 5も実装に存在する。実際の移行処理は `app_database.dart`、v6/v7/v8の移行テストは `t24`/`t27`/`t34` を参照。
 
 ---
 
@@ -169,15 +170,24 @@ GameUPC側の無償API提供に契約的な保証がないことを踏まえ、�
 ### 翻訳機能の残骸整理
 説明文のGemini翻訳機能はUIから既に削除されていたが、バックエンド実装（`DescriptionTranslationRepository`/`GeminiTranslationClient`）・関連provider・テスト・i18n文言・README記述が孤立して残っていた。これらを完全に削除し、Geminiキーの設定画面の表示を「写真・棚画像の認識」専用の表現に統一した。`Games.descriptionJa`カラムはデータ保護のため変更していない（マイグレーションなし）。
 
-### GitHub配布対応
-Google Play公開ではなくGitHub Releasesでの配布に方針変更したことに伴う対応。
+### 運用・配布方針と現在のAndroid設定
 
-- リリースビルドのAndroidManifestに`INTERNET`権限が欠落していた実装バグを修正（配布方法に関係なく必須の修正）。
-- `applicationId`/`namespace`をFlutterテンプレートのデフォルト値（`com.example.*`）から一意な値に変更。
-- リリース署名を、`key.properties`が存在しない場合は明示的にビルドを失敗させる構成にし、debug鍵での誤配布を構造的に防止。
-- リポジトリルートに`LICENSE`（MIT）を追加。
-- 設定画面にBGG/GameUPCの出典クレジット表示を追加（BGG XML API利用規約の必須条件）。
-- READMEにGitHub Releases経由のインストール手順・Play Protectの警告に関する案内・SHA-256検証手順を追記。
+個人利用・非商用の運用を想定する。BGG APIを利用するためGoogle Playには登録せず、APKも配布しない。GitHub ReleasesによるAPK配布方針や配布対応済みとの旧記述は、現在の運用・実装と一致しないため訂正する。
+
+現在の実装状態は以下のとおり。
+
+- `INTERNET`権限はdebug/profileのAndroidManifestにのみあり、mainにはない。
+- `applicationId`/`namespace`は `com.example.bg_shelf_scanner`。
+- releaseビルドもdebug署名設定を使用し、`key.properties`必須の設定はない。
+- リポジトリルートに `LICENSE` ファイルはない。MITはライセンス方針として記載されている。
+- 設定画面のBGG/GameUPC出典クレジット表示は未実装。
+- READMEにAPK配布・インストール・SHA-256検証手順は掲載していない。
+
+これらの配布設定を変更する作業は、現在の非配布運用では行わない。
+
+### YAML一括出力の保存失敗対応（2026-10）
+
+出力済みハッシュをファイル保存前に更新していたため、保存失敗後の再実行で未保存のデータがスキップされる不具合を修正。全ファイルの保存成功後にハッシュをトランザクションで更新し、途中失敗時は従来のハッシュを保持する。初回の部分保存失敗と、変更済みデータの保存失敗からの再実行をテストする。
 
 ---
 
